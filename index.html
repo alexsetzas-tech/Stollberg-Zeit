@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hybrid Zeiterfassung Scanner</title>
+    <!-- Tailwind CSS laden -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Kamera Bibliothek -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .app-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .pulsing { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.7); }
+            70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(39, 174, 96, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); }
+        }
+        .tag { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; margin: 2px; color: white; }
+    </style>
+</head>
+<body>
+    <div class="app-container flex flex-col relative pb-20">
+        <!-- Header -->
+        <header class="bg-slate-800 text-white p-4 shadow-md sticky top-0 z-50">
+            <h1 class="text-xl font-bold text-center">⏱️ Zeit-Scanner</h1>
+            <div class="text-xs text-center text-slate-300 mt-1" id="device-id-display">System startet...</div>
+        </header>
+
+        <!-- Diagnose Fenster (Sichtbar bei Fatal-Errors) -->
+        <div id="debug-log" class="hidden bg-red-100 text-red-800 text-xs p-3 font-mono break-words border-b-2 border-red-500"></div>
+
+        <main class="p-4 flex-grow">
+            <!-- Dynamische Meldungen (Toast) -->
+            <div id="message-box" class="hidden p-4 mb-4 rounded-xl shadow-lg text-sm font-bold text-center transition-all"></div>
+
+            <!-- Setup Phase -->
+            <div id="setup-section" class="bg-slate-50 p-4 rounded-xl border-2 border-dashed border-slate-300 text-center mb-6">
+                <h2 class="font-bold text-slate-700 mb-2">1. Stammdaten laden</h2>
+                <p class="text-xs text-slate-500 mb-4">Einmalig .csv Datei hochladen. Die App merkt sich die Daten ab sofort.</p>
+                <label for="master-csv-upload" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl cursor-pointer inline-block w-full shadow">
+                    📂 Stammdaten importieren
+                </label>
+                <input type="file" id="master-csv-upload" accept=".csv" class="hidden" onchange="loadMasterCSV(event)">
+                <div id="master-data-status" class="text-xs text-green-600 font-bold mt-3 hidden">✅ Daten aus Offline-Speicher geladen</div>
+            </div>
+
+            <!-- Scanner Bereich (Hybrid) -->
+            <div id="scanner-section" class="mb-6 hidden">
+                <div class="grid grid-cols-2 gap-3" id="scan-buttons-container">
+                    <button onclick="startQrScanner()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg flex flex-col items-center justify-center text-sm transition-transform active:scale-95">
+                        <span class="text-2xl mb-1">📷</span> QR Kamera
+                    </button>
+                    <button onclick="startNfcScanner()" id="btn-nfc" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg flex flex-col items-center justify-center text-sm transition-transform active:scale-95">
+                        <span class="text-2xl mb-1">📱</span> NFC Funk
+                    </button>
+                </div>
+
+                <!-- Kamera Sucher -->
+                <div id="qr-reader" class="w-full mt-4 rounded-xl overflow-hidden border-4 border-slate-200 hidden"></div>
+                
+                <!-- NFC Status Fenster -->
+                <div id="nfc-reader-ui" class="w-full mt-4 rounded-xl border-4 border-blue-200 bg-blue-50 p-6 text-center hidden pulsing">
+                    <span class="text-4xl block mb-2">📡</span>
+                    <span class="font-bold text-blue-700">NFC Scanner aktiv</span><br>
+                    <span class="text-xs text-blue-500 mt-2 block">Bitte Smartphone Rückseite an den Metallstreifen halten...</span>
+                </div>
+
+                <button id="stop-scan-btn" onclick="stopAllScanners()" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl mt-4 hidden shadow">
+                    Abbrechen
+                </button>
+            </div>
+
+            <!-- Aktive Tätigkeit (Timer) -->
+            <div id="active-task-section" class="hidden bg-white rounded-xl shadow-lg border-2 border-green-400 p-5 mb-6 text-center pulsing">
+                <div class="text-xs font-bold text-green-600 uppercase tracking-wider mb-2">▶ Laufende Tätigkeit</div>
+                <div id="active-time" class="text-4xl font-mono font-bold text-slate-800 mb-4 border-b border-slate-100 pb-4">00:00:00</div>
+                <div class="text-sm text-slate-500 mb-2">Code: <span id="active-id" class="font-mono font-bold text-slate-700"></span></div>
+                <div id="active-tags" class="flex flex-wrap justify-center gap-1 mt-3"></div>
+                <div class="mt-5 text-xs text-slate-400">Scanne diesen Code erneut, um zu stoppen,<br>oder einen neuen, um direkt zu wechseln.</div>
+            </div>
+
+            <!-- Historie & Log -->
+            <div class="bg-white rounded-xl shadow-md border border-slate-100 p-4">
+                <div class="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
+                    <h3 class="font-bold text-slate-700">Offline gesicherte Logs</h3>
+                    <span id="log-count" class="bg-indigo-100 text-indigo-700 text-xs py-1 px-3 rounded-full font-bold">0</span>
+                </div>
+                <ul id="log-list" class="space-y-2 mb-4 max-h-48 overflow-y-auto">
+                    <li class="text-sm text-slate-400 text-center py-4" id="empty-log-msg">Noch keine Zeiten erfasst.</li>
+                </ul>
+                
+                <button onclick="exportLogsCSV()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center mb-3">
+                    ⬇️ .CSV Exportieren
+                </button>
+                <button onclick="clearLogs()" class="w-full bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold py-2 rounded-xl border border-red-200">
+                    🗑️ Logs auf Gerät löschen
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Globaler Fehler-Fänger für mobile Browser
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            const debugLog = document.getElementById('debug-log');
+            debugLog.classList.remove('hidden');
+            debugLog.innerHTML += `💥 Fehler: ${msg} <br>Zeile: ${lineNo}<hr>`;
+            return false;
+        };
+
+        let masterData = []; 
+        let logs = []; 
+        let html5QrcodeScanner = null;
+        let nfcAbortController = null;
+        let deviceId = "";
+        let currentTask = null; 
+        let timerInterval = null;
+        const levelColors = ['#3498db', '#e67e22', '#9b59b6', '#16a085'];
+
+        window.onload = function() {
+            setTimeout(initApp, 150); // Kurze Verzögerung für sauberes Rendering
+        };
+
+        function initApp() {
+            try {
+                // UUID laden oder erzeugen
+                deviceId = localStorage.getItem('zf_device_id');
+                if (!deviceId) {
+                    deviceId = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+                    localStorage.setItem('zf_device_id', deviceId);
+                }
+                document.getElementById('device-id-display').textContent = `Geräte-ID: ${deviceId}`;
+
+                // NFC Button Check (Ausgrauen wenn Apple oder kein NFC)
+                if (!('NDEFReader' in window)) {
+                    const nfcBtn = document.getElementById('btn-nfc');
+                    nfcBtn.classList.replace('bg-blue-600', 'bg-slate-300');
+                    nfcBtn.classList.replace('text-white', 'text-slate-500');
+                    nfcBtn.onclick = () => showMessage("Web NFC wird von diesem Gerät/Browser (z.B. iPhone) nicht direkt unterstützt. Bitte Scanner-Link nutzen.", "error");
+                }
+
+                // Daten laden
+                loadOfflineData();
+                checkAutoTrigger(); // URL/NFC-Link Check
+
+            } catch (error) {
+                showMessage("Speicherfehler! Bitte im privaten Modus prüfen.", "error");
+            }
+        }
+
+        function loadOfflineData() {
+            const savedMaster = localStorage.getItem('zf_master_data');
+            if (savedMaster) {
+                masterData = JSON.parse(savedMaster);
+                document.getElementById('master-data-status').classList.remove('hidden');
+                document.getElementById('scanner-section').classList.remove('hidden');
+            }
+
+            const savedLogs = localStorage.getItem('zf_logs');
+            if (savedLogs) {
+                logs = JSON.parse(savedLogs);
+                updateLogUI();
+            }
+
+            const activeTaskJson = localStorage.getItem('zf_active_task');
+            if (activeTaskJson) {
+                currentTask = JSON.parse(activeTaskJson);
+                if(currentTask && currentTask.startTime) {
+                    currentTask.startTime = new Date(currentTask.startTime); 
+                    restoreActiveTaskUI();
+                }
+            }
+        }
+
+        function loadMasterCSV(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const rows = text.split('\n');
+                masterData = [];
+                
+                for (let i = 1; i < rows.length; i++) {
+                    if (!rows[i].trim()) continue;
+                    const cols = rows[i].split(';').map(c => c.replace(/^"|"$/g, '').trim());
+                    if (cols.length >= 2) {
+                        masterData.push({ id: cols[0], t1: cols[2] || '', t2: cols[3] || '', t3: cols[4] || '', t4: cols[5] || '' });
+                    }
+                }
+                
+                if (masterData.length > 0) {
+                    localStorage.setItem('zf_master_data', JSON.stringify(masterData));
+                    document.getElementById('master-data-status').textContent = `✅ ${masterData.length} Codes offline gesichert`;
+                    document.getElementById('master-data-status').classList.remove('hidden');
+                    document.getElementById('scanner-section').classList.remove('hidden');
+                    showMessage("Stammdaten gespeichert. Scanner bereit.", "success");
+                } else {
+                    showMessage("Fehler: CSV war leer oder ungültig.", "error");
+                }
+            };
+            reader.readAsText(file, "UTF-8");
+            event.target.value = '';
+        }
+
+        function startQrScanner() {
+            if(typeof Html5Qrcode === 'undefined') {
+                showMessage("Fehler: Scanner-Modul blockiert. Keine Internetverbindung?", "error"); return;
+            }
+            if(window.location.protocol === 'file:') {
+                showMessage("Info: Falls die Kamera nicht öffnet, blockiert das Handy lokale Zugriffe.", "error");
+            }
+            
+            toggleScannerUI('qr');
+            html5QrcodeScanner = new Html5Qrcode("qr-reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            html5QrcodeScanner.start({ facingMode: "environment" }, config, (decodedText) => {
+                stopAllScanners();
+                processScannedId(decodedText);
+            }).catch(err => {
+                showMessage("Kamera Zugriff verweigert.", "error");
+                stopAllScanners();
+            });
+        }
+
+        async function startNfcScanner() {
+            if (!('NDEFReader' in window)) return;
+            toggleScannerUI('nfc');
+
+            try {
+                const ndef = new NDEFReader();
+                nfcAbortController = new AbortController();
+                await ndef.scan({ signal: nfcAbortController.signal });
+
+                ndef.onreading = event => {
+                    const decoder = new TextDecoder();
+                    for (const record of event.message.records) {
+                        if (record.recordType === "text" || record.recordType === "url") {
+                            let text = decoder.decode(record.data);
+                            // Falls URL programmiert wurde (z.B. https://...?id=XYZ) ID extrahieren
+                            if(text.includes('id=')) text = text.split('id=')[1].split('&')[0];
+                            
+                            stopAllScanners();
+                            processScannedId(text);
+                            return; 
+                        }
+                    }
+                    showMessage("Unbekanntes NFC Format.", "error");
+                    stopAllScanners();
+                };
+            } catch (error) {
+                showMessage("NFC Fehler: " + error.message, "error");
+                stopAllScanners();
+            }
+        }
+
+        function stopAllScanners() {
+            document.getElementById('scan-buttons-container').classList.remove('hidden');
+            document.getElementById('stop-scan-btn').classList.add('hidden');
+            document.getElementById('qr-reader').classList.add('hidden');
+            document.getElementById('nfc-reader-ui').classList.add('hidden');
+
+            if (html5QrcodeScanner) {
+                try { html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()); } catch(e) {}
+                html5QrcodeScanner = null;
+            }
+            if (nfcAbortController) {
+                nfcAbortController.abort();
+                nfcAbortController = null;
+            }
+        }
+
+        function toggleScannerUI(type) {
+            document.getElementById('scan-buttons-container').classList.add('hidden');
+            document.getElementById('stop-scan-btn').classList.remove('hidden');
+            if(type === 'qr') document.getElementById('qr-reader').classList.remove('hidden');
+            if(type === 'nfc') document.getElementById('nfc-reader-ui').classList.remove('hidden');
+        }
+
+        function checkAutoTrigger() {
+            let scannedId = null;
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('id')) scannedId = urlParams.get('id');
+            if (!scannedId && window.location.hash.includes('id=')) {
+                scannedId = window.location.hash.split('id=')[1].split('&')[0];
+            }
+
+            if (scannedId) {
+                if (masterData.length === 0) {
+                    showMessage("Bitte importiere zuerst die Stammdaten.csv!", "error"); return;
+                }
+                
+                // URL bereinigen
+                try { window.history.replaceState(null, '', window.location.pathname); } catch(e) { window.location.hash = ''; }
+                
+                setTimeout(() => { processScannedId(scannedId); }, 300);
+            }
+        }
+
+        function processScannedId(scannedText) {
+            const scannedId = scannedText.trim();
+            const masterEntry = masterData.find(d => d.id === scannedId);
+
+            if (!masterEntry) {
+                showMessage(`Fehler: Code ${scannedId} ist unbekannt!`, "error");
+                if (currentTask) stopAndLogTask();
+                return;
+            }
+
+            if (currentTask) {
+                if (currentTask.id === scannedId) {
+                    stopAndLogTask();
+                    showMessage("Tätigkeit regulär gestoppt.", "success");
+                } else {
+                    stopAndLogTask();
+                    startTask(masterEntry);
+                    showMessage("Tätigkeit nahtlos gewechselt.", "success");
+                }
+            } else {
+                startTask(masterEntry);
+                showMessage("Tätigkeit gestartet.", "success");
+            }
+        }
+
+        function startTask(masterEntry) {
+            currentTask = { id: masterEntry.id, startTime: new Date(), dataObj: masterEntry };
+            localStorage.setItem('zf_active_task', JSON.stringify(currentTask));
+            restoreActiveTaskUI();
+        }
+
+        function stopAndLogTask() {
+            clearInterval(timerInterval);
+            const endTime = new Date();
+            const durationSec = Math.floor((endTime - currentTask.startTime) / 1000);
+            
+            logs.push({
+                deviceId: deviceId, id: currentTask.id,
+                startDate: currentTask.startTime.toLocaleDateString('de-DE'),
+                startTime: currentTask.startTime.toLocaleTimeString('de-DE'),
+                endTime: endTime.toLocaleTimeString('de-DE'),
+                durationSec: durationSec, dataObj: currentTask.dataObj
+            });
+            
+            localStorage.setItem('zf_logs', JSON.stringify(logs));
+            updateLogUI();
+            currentTask = null;
+            localStorage.removeItem('zf_active_task');
+            document.getElementById('active-task-section').classList.add('hidden');
+        }
+
+        function restoreActiveTaskUI() {
+            document.getElementById('active-task-section').classList.remove('hidden');
+            document.getElementById('active-id').textContent = currentTask.id;
+            
+            const tagsContainer = document.getElementById('active-tags');
+            tagsContainer.innerHTML = '';
+            [currentTask.dataObj.t1, currentTask.dataObj.t2, currentTask.dataObj.t3, currentTask.dataObj.t4].forEach((levelText, idx) => {
+                if(levelText) levelText.split(',').forEach(item => {
+                    const trimmed = item.trim();
+                    if(trimmed) {
+                        const span = document.createElement('span');
+                        span.className = 'tag'; span.style.backgroundColor = levelColors[idx] || '#7f8c8d';
+                        span.textContent = trimmed; tagsContainer.appendChild(span);
+                    }
+                });
+            });
+
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                const diffSeconds = Math.floor((new Date() - currentTask.startTime) / 1000);
+                const h = String(Math.floor(diffSeconds / 3600)).padStart(2, '0');
+                const m = String(Math.floor((diffSeconds % 3600) / 60)).padStart(2, '0');
+                const s = String(diffSeconds % 60).padStart(2, '0');
+                document.getElementById('active-time').textContent = `${h}:${m}:${s}`;
+            }, 1000);
+        }
+
+        function updateLogUI() {
+            document.getElementById('log-count').textContent = logs.length;
+            const list = document.getElementById('log-list');
+            
+            list.innerHTML = '';
+            if(logs.length === 0) { 
+                list.innerHTML = '<li class="text-sm text-slate-400 text-center py-4" id="empty-log-msg">Noch keine Zeiten erfasst.</li>'; 
+                return; 
+            }
+            
+            [...logs].reverse().slice(0, 50).forEach(log => {
+                const li = document.createElement('li');
+                li.className = "bg-slate-50 p-3 rounded-lg text-sm border border-slate-200 flex justify-between items-center shadow-sm";
+                li.innerHTML = `<div><div class="font-bold text-slate-700">${log.id}</div><div class="text-xs text-slate-400">${log.startTime} - ${log.endTime}</div></div>
+                                <span class="text-green-600 font-bold bg-green-50 px-2 py-1 rounded border border-green-100">${log.durationSec}s</span>`;
+                list.appendChild(li);
+            });
+        }
+
+        function showMessage(text, type) {
+            const box = document.getElementById('message-box');
+            box.textContent = text;
+            box.className = `p-4 mb-4 rounded-xl shadow-lg text-sm font-bold text-center block ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            setTimeout(() => { box.classList.add('hidden'); }, 4000);
+        }
+
+        function exportLogsCSV() {
+            if (logs.length === 0) return showMessage("Keine Daten vorhanden.", "error");
+            let maxCols = 0;
+            const parsedLogs = logs.map(log => {
+                const arr = [];
+                [log.dataObj.t1, log.dataObj.t2, log.dataObj.t3, log.dataObj.t4].forEach(level => {
+                    if (level) level.split(',').forEach(item => { if(item.trim()) arr.push(item.trim()); });
+                });
+                if (arr.length > maxCols) maxCols = arr.length;
+                return { ...log, descArray: arr };
+            });
+
+            let csv = "\uFEFFGeraete_ID;QR_Code;Datum;Startzeit;Endzeit;Dauer_Sekunden";
+            for(let i = 1; i <= maxCols; i++) csv += `;Kategorie_${i}`;
+            csv += "\n";
+
+            parsedLogs.forEach(log => {
+                let row = `${log.deviceId};${log.id};${log.startDate};${log.startTime};${log.endTime};${log.durationSec}`;
+                log.descArray.forEach(desc => row += `;${desc.includes(';') ? `"${desc}"` : desc}`);
+                for(let i = 0; i < maxCols - log.descArray.length; i++) row += `;`;
+                csv += row + "\n";
+            });
+
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+            a.download = `Zeiterfassung_Export_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+        }
+
+        function clearLogs() {
+            if(confirm("Alle Logs löschen?")) { logs = []; localStorage.removeItem('zf_logs'); updateLogUI(); }
+        }
+    </script>
+</body>
+</html>
