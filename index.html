@@ -5,18 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hybrid Zeiterfassung Scanner</title>
 
-    <!-- Vollwertiges PWA-Manifest als Data-URI (ermöglicht die Chrome-Installation) -->
-    <link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"Stollberg Zeit-Scanner","short_name":"Zeit-Scanner","start_url":".","display":"standalone","background_color":"#1e293b","theme_color":"#1e293b","icons":[{"src":"https://placehold.co/192x192/1e293b/ffffff.png?text=ZEIT","sizes":"192x192","type":"image/png"},{"src":"https://placehold.co/512x512/1e293b/ffffff.png?text=ZEIT","sizes":"512x512","type":"image/png"}]}'>
-
-    <!-- Android Chrome Vollbild-Modus (verhindert neue Browser-Tabs beim NFC-Scan) -->
+    <!-- Android Chrome Vollbild-Modus (öffnet als Web-App ohne störende Browser-Leisten) -->
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Zeit-Scanner">
     <meta name="theme-color" content="#1e293b">
 
     <!-- Apple iOS Safari Standalone-Modus (öffnet als native App ohne Adressleiste) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Zeit-Scanner">
-    <link rel="apple-touch-icon" href="https://placehold.co/180x180/1e293b/ffffff.png?text=ZEIT">
 
     <!-- Tailwind CSS laden -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -148,12 +145,12 @@
         window.onload = function() {
             setTimeout(initApp, 150);
             
-            // Tab-Synchronisation
+            // Tab-Synchronisation: Aktualisiert alle Tabs im selben Moment
             window.addEventListener('storage', function(e) {
                 if (e.key === 'zf_active_task') {
                     if (!e.newValue) {
                         currentTask = null;
-                        if(timerInterval) clearInterval(timerInterval);
+                        if (timerInterval) clearInterval(timerInterval);
                         document.getElementById('active-task-section').classList.add('hidden');
                     } else {
                         currentTask = JSON.parse(e.newValue);
@@ -170,11 +167,13 @@
 
         async function initApp() {
             try {
-                // 1. UUID laden oder initial erzeugen
-                deviceId = localStorage.getItem('zf_device_id');
+                // 1. Eindeutige Geräte-ID laden oder initial erzeugen
+                deviceId = localStorage.getItem('zeiterfassung_device_id') || localStorage.getItem('zf_device_id');
                 if (!deviceId) {
                     deviceId = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-                    localStorage.setItem('zf_device_id', deviceId);
+                    localStorage.setItem('zeiterfassung_device_id', deviceId);
+                } else {
+                    localStorage.setItem('zeiterfassung_device_id', deviceId);
                 }
                 document.getElementById('device-id-display').textContent = `Geräte-ID: ${deviceId}`;
 
@@ -188,7 +187,7 @@
                     }
                 }
 
-                // 3. Lokale Offline-Daten vorladen (schneller Start)
+                // 3. Lokale Offline-Daten vorladen
                 loadLocalOfflineData();
 
                 // 4. Automatischen Download der Stammdaten von GitHub versuchen
@@ -204,18 +203,15 @@
 
         // Automatischer Hintergrund-Abruf von GitHub
         async function autoFetchMasterData() {
-            const syncBadge = document.getElementById('sync-badge');
             const syncDot = document.getElementById('sync-dot');
             const syncText = document.getElementById('sync-text');
 
-            // Wenn lokal via file:/// getestet wird, blockieren Browser 'fetch'
             if (window.location.protocol === 'file:') {
                 syncText.textContent = "Lokale Datei";
                 syncDot.className = "inline-block w-2 h-2 rounded-full bg-slate-400";
                 return;
             }
 
-            // Cache-Busting Zeitstempel anhängen, damit GitHub-Aktualisierungen sofort geladen werden
             const cacheBuster = '?v=' + new Date().getTime();
             const possibleFiles = ['stammdaten.csv', 'Stammdaten.csv'];
 
@@ -230,12 +226,9 @@
                             masterData = parsed;
                             localStorage.setItem('zf_master_data', JSON.stringify(masterData));
                             
-                            // UI auf "Online Synchronisiert" setzen
                             syncDot.className = "inline-block w-2 h-2 rounded-full bg-green-400";
                             syncText.textContent = `Online (${masterData.length})`;
                             document.getElementById('scanner-section').classList.remove('hidden');
-                            
-                            // Setup-Box automatisch verstecken für saubere Ansicht
                             collapseSetupSection();
                             return;
                         }
@@ -245,7 +238,6 @@
                 }
             }
 
-            // Falls Server nicht erreichbar oder keine Datei vorhanden: Offline-Status prüfen
             if (masterData.length > 0) {
                 syncDot.className = "inline-block w-2 h-2 rounded-full bg-blue-400";
                 syncText.textContent = `Offline-Cache (${masterData.length})`;
@@ -285,7 +277,6 @@
             
             for (let i = 1; i < rows.length; i++) {
                 if (!rows[i].trim()) continue;
-                // Trennung über Semikolon (Standard unserer Generatoren)
                 const separator = rows[i].includes(';') ? ';' : ',';
                 const cols = rows[i].split(separator).map(c => c.replace(/^"|"$/g, '').trim());
                 if (cols.length >= 2) {
@@ -313,7 +304,7 @@
                     localStorage.setItem('zf_master_data', JSON.stringify(masterData));
                     document.getElementById('scanner-section').classList.remove('hidden');
                     collapseSetupSection();
-                    showMessage(`✅ ${masterData.length} Stammdaten-Codes erfolgreich geladen!`, "success");
+                    showMessage(`✅ ${masterData.length} Stammdaten-Codes geladen!`, "success");
                 } else {
                     showMessage("Fehler: CSV-Datei war leer oder ungültig.", "error");
                 }
@@ -412,12 +403,18 @@
             }
 
             if (scannedId) {
+                // Haptisches Feedback: Handy vibriert kurz bei erfolgreichem NFC-Kontakt
+                if (navigator.vibrate) {
+                    try { navigator.vibrate([80, 50, 80]); } catch(e) {}
+                }
+
                 if (masterData.length === 0) {
                     showMessage("Stammdaten laden noch... Bitte erneut tippen.", "error"); return;
                 }
                 
+                // URL bereinigen, damit ein Neuladen keine ungewollten Stopps auslöst
                 try { window.history.replaceState(null, '', window.location.pathname); } catch(e) { window.location.hash = ''; }
-                setTimeout(() => { processScannedId(scannedId); }, 300);
+                setTimeout(() => { processScannedId(scannedId); }, 250);
             }
         }
 
@@ -434,15 +431,15 @@
             if (currentTask) {
                 if (currentTask.id === scannedId) {
                     stopAndLogTask();
-                    showMessage("Tätigkeit regulär gestoppt.", "success");
+                    showMessage("🛑 Tätigkeit regulär gestoppt.", "success");
                 } else {
                     stopAndLogTask();
                     startTask(masterEntry);
-                    showMessage("Tätigkeit nahtlos gewechselt.", "success");
+                    showMessage("🔄 Tätigkeit nahtlos gewechselt.", "success");
                 }
             } else {
                 startTask(masterEntry);
-                showMessage("Tätigkeit gestartet.", "success");
+                showMessage("▶️ Tätigkeit gestartet.", "success");
             }
         }
 
@@ -525,7 +522,7 @@
         function showMessage(text, type) {
             const box = document.getElementById('message-box');
             box.textContent = text;
-            box.className = `p-4 mb-4 rounded-xl shadow-lg text-sm font-bold text-center block ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            box.className = `p-4 mb-4 rounded-xl shadow-lg text-sm font-bold text-center block ${type === 'success' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'}`;
             setTimeout(() => { box.classList.add('hidden'); }, 4000);
         }
 
