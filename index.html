@@ -2,14 +2,15 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <!-- Viewport mit vollem 2-Finger-Zoom (Pinch-to-Zoom) -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <!-- Viewport mit explizit freigegebenem 2-Finger-Zoom (0.5x bis 5.0x) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=5.0, user-scalable=yes">
     <title>Hybrid Zeiterfassung Scanner</title>
 
     <!-- Tailwind CSS laden -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Kamera Bibliothek -->
+    <!-- Kamera Bibliothek für QR-Scanning -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
         .app-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
@@ -23,112 +24,120 @@
     </style>
 </head>
 <body>
-    <div class="app-container flex flex-col relative pb-20">
-        <!-- Header -->
-        <header class="bg-slate-800 text-white p-4 shadow-md sticky top-0 z-50">
-            <h1 class="text-xl font-bold text-center">⏱️ Zeit-Scanner</h1>
-            <div class="text-xs text-center text-slate-300 mt-1" id="device-id-display">System startet...</div>
+    <div class="app-container flex flex-col relative pb-16">
+        
+        <!-- Schlanker Header mit QR-Kamera-Button direkt neben dem Titel -->
+        <header class="bg-slate-800 text-white p-3.5 shadow-md sticky top-0 z-50">
+            <div class="flex justify-between items-center">
+                <div class="text-left">
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-lg font-bold tracking-tight">⏱️ Zeit-Scanner</h1>
+                        
+                        <!-- Kompakter QR-Scan Button direkt neben der Überschrift -->
+                        <button onclick="startQrScanner()" id="header-qr-btn" class="bg-slate-700 hover:bg-slate-600 active:scale-95 text-white text-xs px-2.5 py-1 rounded-lg border border-slate-600 flex items-center gap-1 shadow-sm transition-all" title="Kamera zum QR-Scannen öffnen">
+                            <span>📷</span>
+                            <span class="font-semibold text-[11px]">Scan</span>
+                        </button>
+                    </div>
+                    <div class="text-[11px] text-slate-300 font-mono mt-0.5" id="device-id-display">Geräte-ID: Lade...</div>
+                </div>
+
+                <!-- Versions-Badge -->
+                <span class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full border border-slate-600 font-mono">
+                    v2.2
+                </span>
+            </div>
         </header>
 
-        <!-- Diagnose Fenster (Sichtbar bei Fatal-Errors) -->
+        <!-- Diagnose Fenster (Sichtbar bei Fehlern) -->
         <div id="debug-log" class="hidden bg-red-100 text-red-800 text-xs p-3 font-mono break-words border-b-2 border-red-500"></div>
 
         <main class="p-4 flex-grow">
-            <!-- Dynamische Meldungen (Toast) -->
-            <div id="message-box" class="hidden p-4 mb-4 rounded-xl shadow-lg text-sm font-bold text-center transition-all"></div>
+            <!-- Dynamische Status-Meldungen (Toast) -->
+            <div id="message-box" class="hidden p-3.5 mb-4 rounded-xl shadow-lg text-sm font-bold text-center transition-all"></div>
 
-            <!-- Setup Phase: Stammdaten laden -->
-            <div id="setup-section" class="bg-slate-50 p-4 rounded-xl border-2 border-dashed border-slate-300 text-center mb-6">
-                <h2 class="font-bold text-slate-700 mb-2">1. Stammdaten laden</h2>
-                <p class="text-xs text-slate-500 mb-4" id="setup-description">
-                    Einmalig .csv Datei hochladen oder automatisch vom Server beziehen.
-                </p>
-                <label for="master-csv-upload" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl cursor-pointer inline-block w-full shadow">
-                    📂 Stammdaten importieren
-                </label>
-                <input type="file" id="master-csv-upload" accept=".csv" class="hidden" onchange="loadMasterCSV(event)">
-                <div id="master-data-status" class="text-xs text-green-600 font-bold mt-3 hidden">✅ Daten aus Offline-Speicher geladen</div>
-            </div>
-
-            <!-- Scanner Bereich (Hybrid) -->
-            <div id="scanner-section" class="mb-6 hidden">
-                <div class="grid grid-cols-2 gap-3" id="scan-buttons-container">
-                    <button onclick="startQrScanner()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg flex flex-col items-center justify-center text-sm transition-transform active:scale-95">
-                        <span class="text-2xl mb-1">📷</span> QR Kamera
-                    </button>
-                    <button onclick="startNfcScanner()" id="btn-nfc" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg flex flex-col items-center justify-center text-sm transition-transform active:scale-95">
-                        <span class="text-2xl mb-1">📱</span> NFC Funk
-                    </button>
+            <!-- Kamera-Sucher Bereich (Wird nur aufgeklappt, wenn oben auf 📷 Scan getippt wird) -->
+            <div id="scanner-modal-container" class="hidden mb-5 bg-slate-900 p-3.5 rounded-2xl shadow-xl border border-slate-700">
+                <div class="flex justify-between items-center text-white text-xs px-1 mb-2 font-bold">
+                    <span>📷 QR-Code im Sucher ausrichten</span>
+                    <button onclick="stopAllScanners()" class="text-slate-400 hover:text-white p-1 text-sm font-mono">✕</button>
                 </div>
-
-                <!-- Kamera Sucher -->
-                <div id="qr-reader" class="w-full mt-4 rounded-xl overflow-hidden border-4 border-slate-200 hidden"></div>
-                
-                <!-- NFC Status Fenster -->
-                <div id="nfc-reader-ui" class="w-full mt-4 rounded-xl border-4 border-blue-200 bg-blue-50 p-6 text-center hidden pulsing">
-                    <span class="text-4xl block mb-2">📡</span>
-                    <span class="font-bold text-blue-700">NFC Scanner aktiv</span><br>
-                    <span class="text-xs text-blue-500 mt-2 block">Bitte Smartphone-Rückseite an den NFC-Tag halten...</span>
-                </div>
-
-                <button id="stop-scan-btn" onclick="stopAllScanners()" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl mt-4 hidden shadow">
-                    Abbrechen
+                <div id="qr-reader" class="w-full rounded-xl overflow-hidden border-2 border-slate-700 bg-black"></div>
+                <button id="stop-scan-btn" onclick="stopAllScanners()" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl mt-3 text-xs shadow transition-all active:scale-95">
+                    Kamera schließen
                 </button>
             </div>
 
             <!-- Aktive Tätigkeit (Timer) -->
-            <div id="active-task-section" class="hidden bg-white rounded-xl shadow-lg border-2 border-green-400 p-5 mb-6 text-center pulsing">
+            <div id="active-task-section" class="hidden bg-white rounded-xl shadow-lg border-2 border-green-400 p-5 mb-5 text-center pulsing">
                 <div class="text-xs font-bold text-green-600 uppercase tracking-wider mb-2">▶ Laufende Tätigkeit</div>
-                <div id="active-time" class="text-4xl font-mono font-bold text-slate-800 mb-4 border-b border-slate-100 pb-4">00:00:00</div>
-                <div class="text-sm text-slate-500 mb-2">Code: <span id="active-id" class="font-mono font-bold text-slate-700"></span></div>
-                <div id="active-tags" class="flex flex-wrap justify-center gap-1 mt-3"></div>
-                <div class="mt-5 text-xs text-slate-400">Scanne diesen Code erneut, um zu stoppen,<br>oder einen neuen, um direkt zu wechseln.</div>
+                <div id="active-time" class="text-4xl font-mono font-bold text-slate-800 mb-3 border-b border-slate-100 pb-3">00:00:00</div>
+                <div class="text-sm text-slate-500 mb-1">Code: <span id="active-id" class="font-mono font-bold text-slate-700"></span></div>
+                <div id="active-tags" class="flex flex-wrap justify-center gap-1 mt-2"></div>
+                <div class="mt-4 text-[11px] text-slate-400">Scanne diesen Code erneut, um zu stoppen,<br>oder einen neuen, um direkt zu wechseln.</div>
             </div>
 
-            <!-- Historie & Log -->
+            <!-- Historie & Log: Arbeitszeit Liste direkt im Fokus -->
             <div class="bg-white rounded-xl shadow-md border border-slate-100 p-4">
                 <div class="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
-                    <!-- Aktualisierte Überschrift laut Anforderung -->
                     <h3 class="font-bold text-slate-800 text-base">Arbeitszeit Liste</h3>
                     <span id="log-count" class="bg-indigo-100 text-indigo-700 text-xs py-1 px-3 rounded-full font-bold">0</span>
                 </div>
                 
-                <ul id="log-list" class="space-y-2.5 mb-4 max-h-60 overflow-y-auto">
+                <ul id="log-list" class="space-y-2.5 mb-4 max-h-72 overflow-y-auto">
                     <li class="text-sm text-slate-400 text-center py-4" id="empty-log-msg">Noch keine Zeiten erfasst.</li>
                 </ul>
                 
-                <button onclick="exportLogsCSV()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center mb-3 transition-colors">
+                <button onclick="exportLogsCSV()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center mb-2.5 transition-all active:scale-[0.99]">
                     ⬇️ .CSV Exportieren
                 </button>
-                <button onclick="clearLogs()" class="w-full bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold py-2 rounded-xl border border-red-200 transition-colors">
+                <button onclick="promptClearLogs()" class="w-full bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold py-2 rounded-xl border border-red-200 transition-colors">
                     🗑️ Logs auf Gerät löschen
                 </button>
             </div>
         </main>
+
+        <!-- Custom Lösch-Bestätigung (Kein natives confirm()) -->
+        <div id="delete-modal" class="fixed inset-0 bg-slate-900/60 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-xs">
+            <div class="bg-white rounded-2xl p-5 max-w-xs w-full shadow-2xl text-center">
+                <div class="text-3xl mb-2">🗑️</div>
+                <h4 class="font-bold text-slate-800 text-sm mb-1">Logs wirklich löschen?</h4>
+                <p class="text-xs text-slate-500 mb-4">Alle lokal erfassten Zeiterfassungsdaten werden unwiderruflich von diesem Gerät entfernt.</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="cancelClearLogs()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-xl text-xs">
+                        Abbrechen
+                    </button>
+                    <button onclick="confirmClearLogs()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-xl text-xs shadow">
+                        Ja, löschen
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         // Globaler Fehler-Fänger für mobile Browser
         window.onerror = function(msg, url, lineNo, columnNo, error) {
             const debugLog = document.getElementById('debug-log');
-            debugLog.classList.remove('hidden');
-            debugLog.innerHTML += `💥 Fehler: ${msg} <br>Zeile: ${lineNo}<hr>`;
+            if (debugLog) {
+                debugLog.classList.remove('hidden');
+                debugLog.innerHTML += `💥 Fehler: ${msg} <br>Zeile: ${lineNo}<hr>`;
+            }
             return false;
         };
 
         let masterData = []; 
         let logs = []; 
         let html5QrcodeScanner = null;
-        let nfcAbortController = null;
         let deviceId = "";
         let currentTask = null; 
         let timerInterval = null;
         const levelColors = ['#3498db', '#e67e22', '#9b59b6', '#16a085'];
 
         window.onload = function() {
-            setTimeout(initApp, 150);
+            setTimeout(initApp, 100);
 
-            // Tab-Synchronisation: Hält alle offenen Fenster im Hintergrund synchron
+            // Tab-Synchronisation
             window.addEventListener('storage', function(e) {
                 if (e.key === 'zf_active_task') {
                     if (!e.newValue) {
@@ -150,40 +159,35 @@
 
         async function initApp() {
             try {
-                // 1. Geräte-ID laden oder initial erzeugen (kompatibel zu beiden Schlüsseln)
+                // 1. Eindeutige Geräte-ID laden oder initial erzeugen
+                // Wir prüfen beide historisch genutzten Speicher-Schlüssel, damit bestehende IDs erhalten bleiben
                 deviceId = localStorage.getItem('zeiterfassung_device_id') || localStorage.getItem('zf_device_id');
                 if (!deviceId) {
                     deviceId = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
                     localStorage.setItem('zeiterfassung_device_id', deviceId);
+                    localStorage.setItem('zf_device_id', deviceId);
                 } else {
+                    // Synchronisiere beide Schlüssel für absolute Konsistenz
                     localStorage.setItem('zeiterfassung_device_id', deviceId);
+                    localStorage.setItem('zf_device_id', deviceId);
                 }
                 document.getElementById('device-id-display').textContent = `Geräte-ID: ${deviceId}`;
 
-                // 2. NFC Button prüfen
-                if (!('NDEFReader' in window)) {
-                    const nfcBtn = document.getElementById('btn-nfc');
-                    if (nfcBtn) {
-                        nfcBtn.classList.replace('bg-blue-600', 'bg-slate-300');
-                        nfcBtn.classList.replace('text-white', 'text-slate-500');
-                        nfcBtn.onclick = () => showMessage("Web NFC wird von diesem Gerät/Browser nicht direkt unterstützt. Bitte Scanner-Link nutzen.", "error");
-                    }
-                }
-
-                // 3. Lokale Offline-Daten vorladen
+                // 2. Lokale Offline-Daten vorladen
                 loadOfflineData();
 
-                // 4. Falls auf GitHub gehostet: Stammdaten im Hintergrund prüfen
+                // 3. Automatischer, lautloser Stammdaten-Abruf von GitHub im Hintergrund
                 await autoFetchMasterData();
 
-                // 5. Prüfen, ob die URL einen Scan-Trigger enthält (?id=XYZ)
+                // 4. Prüfen, ob die URL einen Scan-Trigger enthält (?id=XYZ)
                 checkAutoTrigger();
 
             } catch (error) {
-                showMessage("Speicherfehler! Bitte privaten Modus deaktivieren.", "error");
+                showMessage("Speicherfehler! Bitte normalen Browser-Modus nutzen.", "error");
             }
         }
 
+        // Lautloser Stammdaten-Abruf im Hintergrund (keine UI-Störung)
         async function autoFetchMasterData() {
             if (window.location.protocol === 'file:') return;
 
@@ -200,16 +204,11 @@
                         if (parsed.length > 0) {
                             masterData = parsed;
                             localStorage.setItem('zf_master_data', JSON.stringify(masterData));
-                            
-                            const statusEl = document.getElementById('master-data-status');
-                            statusEl.textContent = `✅ ${masterData.length} Codes vom Server synchronisiert`;
-                            statusEl.classList.remove('hidden');
-                            document.getElementById('scanner-section').classList.remove('hidden');
                             return;
                         }
                     }
                 } catch (e) {
-                    // Stiller Fallback auf lokalen Speicher
+                    // Stiller Fallback auf vorhandene lokale Daten
                 }
             }
         }
@@ -218,10 +217,6 @@
             const savedMaster = localStorage.getItem('zf_master_data');
             if (savedMaster) {
                 masterData = JSON.parse(savedMaster);
-                const statusEl = document.getElementById('master-data-status');
-                statusEl.textContent = `✅ ${masterData.length} Codes offline gesichert`;
-                statusEl.classList.remove('hidden');
-                document.getElementById('scanner-section').classList.remove('hidden');
             }
 
             const savedLogs = localStorage.getItem('zf_logs');
@@ -261,97 +256,40 @@
             return result;
         }
 
-        function loadMasterCSV(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const parsed = parseCSVText(e.target.result);
-                if (parsed.length > 0) {
-                    masterData = parsed;
-                    localStorage.setItem('zf_master_data', JSON.stringify(masterData));
-                    const statusEl = document.getElementById('master-data-status');
-                    statusEl.textContent = `✅ ${masterData.length} Codes offline gesichert`;
-                    statusEl.classList.remove('hidden');
-                    document.getElementById('scanner-section').classList.remove('hidden');
-                    showMessage("Stammdaten gespeichert. Scanner bereit.", "success");
-                } else {
-                    showMessage("Fehler: CSV war leer oder ungültig.", "error");
-                }
-            };
-            reader.readAsText(file, "UTF-8");
-            event.target.value = '';
-        }
-
         function startQrScanner() {
             if (typeof Html5Qrcode === 'undefined') {
-                showMessage("Fehler: Scanner-Bibliothek lädt noch.", "error"); return;
+                showMessage("Fehler: Scanner-Bibliothek lädt noch.", "error"); 
+                return;
             }
-            toggleScannerUI('qr');
+
+            const container = document.getElementById('scanner-modal-container');
+            container.classList.remove('hidden');
+
+            // Scrollt sauber zum Scanner falls die Liste lang ist
+            container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
             html5QrcodeScanner = new Html5Qrcode("qr-reader");
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            const config = { fps: 10, qrbox: { width: 220, height: 220 } };
             
             html5QrcodeScanner.start({ facingMode: "environment" }, config, (decodedText) => {
                 stopAllScanners();
                 processScannedId(decodedText);
             }).catch(err => {
-                showMessage("Kamera Zugriff verweigert.", "error");
+                showMessage("Kamera-Zugriff verweigert.", "error");
                 stopAllScanners();
             });
         }
 
-        async function startNfcScanner() {
-            if (!('NDEFReader' in window)) return;
-            toggleScannerUI('nfc');
-
-            try {
-                const ndef = new NDEFReader();
-                nfcAbortController = new AbortController();
-                await ndef.scan({ signal: nfcAbortController.signal });
-
-                ndef.onreading = event => {
-                    const decoder = new TextDecoder();
-                    for (const record of event.message.records) {
-                        if (record.recordType === "text" || record.recordType === "url") {
-                            let text = decoder.decode(record.data);
-                            if (text.includes('id=')) text = text.split('id=')[1].split('&')[0];
-                            
-                            stopAllScanners();
-                            processScannedId(text);
-                            return; 
-                        }
-                    }
-                    showMessage("Unbekanntes NFC-Datenformat.", "error");
-                    stopAllScanners();
-                };
-            } catch (error) {
-                showMessage("NFC-Fehler: " + error.message, "error");
-                stopAllScanners();
-            }
-        }
-
         function stopAllScanners() {
-            document.getElementById('scan-buttons-container').classList.remove('hidden');
-            document.getElementById('stop-scan-btn').classList.add('hidden');
-            document.getElementById('qr-reader').classList.add('hidden');
-            document.getElementById('nfc-reader-ui').classList.add('hidden');
+            const container = document.getElementById('scanner-modal-container');
+            if (container) container.classList.add('hidden');
 
             if (html5QrcodeScanner) {
-                try { html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()); } catch(e) {}
+                try { 
+                    html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()); 
+                } catch(e) {}
                 html5QrcodeScanner = null;
             }
-            if (nfcAbortController) {
-                nfcAbortController.abort();
-                nfcAbortController = null;
-            }
-        }
-
-        function toggleScannerUI(type) {
-            document.getElementById('scan-buttons-container').classList.add('hidden');
-            document.getElementById('stop-scan-btn').classList.remove('hidden');
-            if (type === 'qr') document.getElementById('qr-reader').classList.remove('hidden');
-            if (type === 'nfc') document.getElementById('nfc-reader-ui').classList.remove('hidden');
         }
 
         function checkAutoTrigger() {
@@ -368,11 +306,16 @@
                 }
 
                 if (masterData.length === 0) {
-                    showMessage("Bitte zuerst Stammdaten importieren!", "error"); return;
+                    showMessage("Stammdaten laden im Hintergrund... Bitte gleich nochmals scannen.", "error"); 
+                    return;
                 }
                 
-                try { window.history.replaceState(null, '', window.location.pathname); } catch(e) { window.location.hash = ''; }
-                setTimeout(() => { processScannedId(scannedId); }, 250);
+                try { 
+                    window.history.replaceState(null, '', window.location.pathname); 
+                } catch(e) { 
+                    window.location.hash = ''; 
+                }
+                setTimeout(() => { processScannedId(scannedId); }, 200);
             }
         }
 
@@ -458,7 +401,6 @@
             }, 1000);
         }
 
-        // Hilfsfunktion: Sekunden in ein sauberes Zeitformat (hh:mm:ss oder mm:ss) umwandeln
         function formatDuration(sec) {
             if (isNaN(sec) || sec < 0) return "00:00";
             const h = Math.floor(sec / 3600);
@@ -470,7 +412,6 @@
             return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
         }
 
-        // Aktualisierte Listenansicht (Arbeitszeit Liste)
         function updateLogUI() {
             document.getElementById('log-count').textContent = logs.length;
             const list = document.getElementById('log-list');
@@ -485,7 +426,6 @@
                 const li = document.createElement('li');
                 li.className = "bg-slate-50 p-3 rounded-xl text-sm border border-slate-200 flex justify-between items-center shadow-sm";
                 
-                // Ermittlung der Tätigkeit aus den Stammdaten
                 let taetigkeitText = "";
                 if (log.dataObj) {
                     const parts = [log.dataObj.t1, log.dataObj.t2, log.dataObj.t3, log.dataObj.t4]
@@ -495,7 +435,6 @@
                     taetigkeitText = log.id;
                 }
 
-                // Aufbau: Tätigkeit in fett, Tag mit Start/Stopzeit in fett, rechts der Statusbalken
                 li.innerHTML = `
                     <div class="pr-2 overflow-hidden">
                         <div class="font-bold text-slate-900 text-sm md:text-base leading-tight truncate" title="${taetigkeitText}">
@@ -524,8 +463,8 @@
         function showMessage(text, type) {
             const box = document.getElementById('message-box');
             box.textContent = text;
-            box.className = `p-4 mb-4 rounded-xl shadow-lg text-sm font-bold text-center block ${type === 'success' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'}`;
-            setTimeout(() => { box.classList.add('hidden'); }, 4000);
+            box.className = `p-3.5 mb-4 rounded-xl shadow-lg text-sm font-bold text-center block ${type === 'success' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'}`;
+            setTimeout(() => { box.classList.add('hidden'); }, 3500);
         }
 
         function exportLogsCSV() {
@@ -557,12 +496,21 @@
             a.click();
         }
 
-        function clearLogs() {
-            if (confirm("Alle Logs auf diesem Gerät löschen?")) { 
-                logs = []; 
-                localStorage.removeItem('zf_logs'); 
-                updateLogUI(); 
-            }
+        // Custom Modal statt browser-nativem confirm()
+        function promptClearLogs() {
+            document.getElementById('delete-modal').classList.remove('hidden');
+        }
+
+        function cancelClearLogs() {
+            document.getElementById('delete-modal').classList.add('hidden');
+        }
+
+        function confirmClearLogs() {
+            logs = []; 
+            localStorage.removeItem('zf_logs'); 
+            updateLogUI(); 
+            cancelClearLogs();
+            showMessage("Alle Logs auf diesem Gerät gelöscht.", "success");
         }
     </script>
 </body>
