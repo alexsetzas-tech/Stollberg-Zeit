@@ -4,17 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hybrid Zeiterfassung Scanner</title>
-
-    <!-- Android Chrome Vollbild-Modus -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="Zeit-Scanner">
-    <meta name="theme-color" content="#1e293b">
-
-    <!-- Apple iOS Safari Standalone-Modus -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Zeit-Scanner">
-
     <!-- Tailwind CSS laden -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Kamera Bibliothek -->
@@ -49,31 +38,11 @@
         <!-- Diagnose Fenster (Sichtbar bei Fatal-Errors) -->
         <div id="debug-log" class="hidden bg-red-100 text-red-800 text-xs p-3 font-mono break-words border-b-2 border-red-500"></div>
 
-        <!-- VOLLBILD OVERLAY: Erscheint nach einem externen NFC-Scan via URL -->
-        <div id="scan-success-overlay" class="fixed inset-0 bg-slate-900/95 z-[100] hidden flex flex-col items-center justify-center p-6 text-center backdrop-blur-sm transition-all">
-            <div class="w-20 h-20 bg-green-500 text-white rounded-full flex items-center justify-center text-4xl shadow-xl mb-4 pulsing">
-                ✓
-            </div>
-            <h2 class="text-2xl font-black text-white mb-2" id="overlay-action-title">Erfolgreich gebucht!</h2>
-            <p class="text-slate-300 text-sm mb-1" id="overlay-task-id">Code: ---</p>
-            <p class="text-green-400 font-mono text-lg font-bold mb-6" id="overlay-time-stamp">--:--:--</p>
-            
-            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 w-full max-w-xs mb-6 text-xs text-slate-300">
-                <p class="mb-1 text-slate-400 font-semibold uppercase tracking-wider">Status</p>
-                <div id="overlay-details" class="font-medium text-white">Daten sicher offline gespeichert.</div>
-            </div>
-
-            <button onclick="closeCurrentTabOrOverlay()" class="w-full max-w-xs bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-xl shadow-lg text-base transition-transform active:scale-95">
-                ✕ Fenster schließen
-            </button>
-            <p class="text-xs text-slate-500 mt-3">Oder Smartphone einfach sperren und einstecken.</p>
-        </div>
-
         <main class="p-4 flex-grow">
             <!-- Dynamische Meldungen (Toast) -->
             <div id="message-box" class="hidden p-4 mb-4 rounded-xl shadow-lg text-sm font-bold text-center transition-all"></div>
 
-            <!-- Setup Phase -->
+            <!-- Setup Phase: Wird bei vorhandenen Daten automatisch eingeklappt, bleibt aber als Fallback erreichbar -->
             <div id="setup-section" class="bg-slate-50 p-4 rounded-xl border-2 border-dashed border-slate-300 text-center mb-6">
                 <div class="flex justify-between items-center mb-2">
                     <h2 class="font-bold text-slate-700 text-sm">📂 Stammdaten-Verwaltung</h2>
@@ -103,11 +72,11 @@
                 <!-- Kamera Sucher -->
                 <div id="qr-reader" class="w-full mt-4 rounded-xl overflow-hidden border-4 border-slate-200 hidden"></div>
                 
-                <!-- NFC Status Fenster (Für dauerhaften In-App Scan ohne Tabs) -->
+                <!-- NFC Status Fenster -->
                 <div id="nfc-reader-ui" class="w-full mt-4 rounded-xl border-4 border-blue-200 bg-blue-50 p-6 text-center hidden pulsing">
                     <span class="text-4xl block mb-2">📡</span>
-                    <span class="font-bold text-blue-700">In-App NFC aktiv (1 Fenster)</span><br>
-                    <span class="text-xs text-blue-500 mt-2 block">Halte die Smartphone-Rückseite an den NFC-Tag...</span>
+                    <span class="font-bold text-blue-700">NFC Scanner aktiv</span><br>
+                    <span class="text-xs text-blue-500 mt-2 block">Bitte Smartphone-Rückseite an den NFC-Tag halten...</span>
                 </div>
 
                 <button id="stop-scan-btn" onclick="stopAllScanners()" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl mt-4 hidden shadow">
@@ -165,12 +134,12 @@
         window.onload = function() {
             setTimeout(initApp, 150);
             
-            // Tab-Synchronisation: Hält alle offenen Tabs im Hintergrund auf exakt demselben Stand
+            // Tab-Synchronisation
             window.addEventListener('storage', function(e) {
                 if (e.key === 'zf_active_task') {
                     if (!e.newValue) {
                         currentTask = null;
-                        if (timerInterval) clearInterval(timerInterval);
+                        if(timerInterval) clearInterval(timerInterval);
                         document.getElementById('active-task-section').classList.add('hidden');
                     } else {
                         currentTask = JSON.parse(e.newValue);
@@ -187,13 +156,11 @@
 
         async function initApp() {
             try {
-                // 1. Eindeutige Geräte-ID laden oder anlegen
-                deviceId = localStorage.getItem('zeiterfassung_device_id') || localStorage.getItem('zf_device_id');
+                // 1. UUID laden oder initial erzeugen
+                deviceId = localStorage.getItem('zf_device_id');
                 if (!deviceId) {
                     deviceId = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-                    localStorage.setItem('zeiterfassung_device_id', deviceId);
-                } else {
-                    localStorage.setItem('zeiterfassung_device_id', deviceId);
+                    localStorage.setItem('zf_device_id', deviceId);
                 }
                 document.getElementById('device-id-display').textContent = `Geräte-ID: ${deviceId}`;
 
@@ -207,7 +174,7 @@
                     }
                 }
 
-                // 3. Lokale Offline-Daten vorladen
+                // 3. Lokale Offline-Daten vorladen (schneller Start)
                 loadLocalOfflineData();
 
                 // 4. Automatischen Download der Stammdaten von GitHub versuchen
@@ -221,16 +188,20 @@
             }
         }
 
+        // Automatischer Hintergrund-Abruf von GitHub
         async function autoFetchMasterData() {
+            const syncBadge = document.getElementById('sync-badge');
             const syncDot = document.getElementById('sync-dot');
             const syncText = document.getElementById('sync-text');
 
+            // Wenn lokal via file:/// getestet wird, blockieren Browser 'fetch'
             if (window.location.protocol === 'file:') {
                 syncText.textContent = "Lokale Datei";
                 syncDot.className = "inline-block w-2 h-2 rounded-full bg-slate-400";
                 return;
             }
 
+            // Cache-Busting Zeitstempel anhängen, damit GitHub-Aktualisierungen sofort geladen werden
             const cacheBuster = '?v=' + new Date().getTime();
             const possibleFiles = ['stammdaten.csv', 'Stammdaten.csv'];
 
@@ -245,9 +216,12 @@
                             masterData = parsed;
                             localStorage.setItem('zf_master_data', JSON.stringify(masterData));
                             
+                            // UI auf "Online Synchronisiert" setzen
                             syncDot.className = "inline-block w-2 h-2 rounded-full bg-green-400";
                             syncText.textContent = `Online (${masterData.length})`;
                             document.getElementById('scanner-section').classList.remove('hidden');
+                            
+                            // Setup-Box automatisch verstecken für saubere Ansicht
                             collapseSetupSection();
                             return;
                         }
@@ -257,6 +231,7 @@
                 }
             }
 
+            // Falls Server nicht erreichbar oder keine Datei vorhanden: Offline-Status prüfen
             if (masterData.length > 0) {
                 syncDot.className = "inline-block w-2 h-2 rounded-full bg-blue-400";
                 syncText.textContent = `Offline-Cache (${masterData.length})`;
@@ -296,6 +271,7 @@
             
             for (let i = 1; i < rows.length; i++) {
                 if (!rows[i].trim()) continue;
+                // Trennung über Semikolon (Standard unserer Generatoren)
                 const separator = rows[i].includes(';') ? ';' : ',';
                 const cols = rows[i].split(separator).map(c => c.replace(/^"|"$/g, '').trim());
                 if (cols.length >= 2) {
@@ -323,7 +299,7 @@
                     localStorage.setItem('zf_master_data', JSON.stringify(masterData));
                     document.getElementById('scanner-section').classList.remove('hidden');
                     collapseSetupSection();
-                    showMessage(`✅ ${masterData.length} Stammdaten-Codes geladen!`, "success");
+                    showMessage(`✅ ${masterData.length} Stammdaten-Codes erfolgreich geladen!`, "success");
                 } else {
                     showMessage("Fehler: CSV-Datei war leer oder ungültig.", "error");
                 }
@@ -354,14 +330,13 @@
             
             html5QrcodeScanner.start({ facingMode: "environment" }, config, (decodedText) => {
                 stopAllScanners();
-                processScannedId(decodedText, false);
+                processScannedId(decodedText);
             }).catch(err => {
                 showMessage("Kamerazugriff verweigert.", "error");
                 stopAllScanners();
             });
         }
 
-        // IN-APP NFC: Bleibt zu 100% in diesem einen Fenster
         async function startNfcScanner() {
             if (!('NDEFReader' in window)) return;
             toggleScannerUI('nfc');
@@ -377,18 +352,13 @@
                         if (record.recordType === "text" || record.recordType === "url") {
                             let text = decoder.decode(record.data);
                             if (text.includes('id=')) text = text.split('id=')[1].split('&')[0];
-                            
-                            // Vibrieren als Bestätigung
-                            if (navigator.vibrate) {
-                                try { navigator.vibrate([80, 50, 80]); } catch(e) {}
-                            }
-                            
-                            // Tätigkeit verarbeiten OHNE Fenster zu öffnen
-                            processScannedId(text, false);
+                            stopAllScanners();
+                            processScannedId(text);
                             return; 
                         }
                     }
                     showMessage("Unbekanntes NFC-Datenformat.", "error");
+                    stopAllScanners();
                 };
             } catch (error) {
                 showMessage("NFC-Fehler: " + error.message, "error");
@@ -419,7 +389,6 @@
             if (type === 'nfc') document.getElementById('nfc-reader-ui').classList.remove('hidden');
         }
 
-        // Externer Aufruf via NFC-Link (Betriebssystem öffnet Browser)
         function checkAutoTrigger() {
             let scannedId = null;
             const urlParams = new URLSearchParams(window.location.search);
@@ -429,20 +398,16 @@
             }
 
             if (scannedId) {
-                if (navigator.vibrate) {
-                    try { navigator.vibrate([100, 50, 100]); } catch(e) {}
-                }
-
                 if (masterData.length === 0) {
                     showMessage("Stammdaten laden noch... Bitte erneut tippen.", "error"); return;
                 }
                 
                 try { window.history.replaceState(null, '', window.location.pathname); } catch(e) { window.location.hash = ''; }
-                setTimeout(() => { processScannedId(scannedId, true); }, 200);
+                setTimeout(() => { processScannedId(scannedId); }, 300);
             }
         }
 
-        function processScannedId(scannedText, isExternalTrigger = false) {
+        function processScannedId(scannedText) {
             const scannedId = scannedText.trim();
             const masterEntry = masterData.find(d => d.id === scannedId);
 
@@ -452,54 +417,19 @@
                 return;
             }
 
-            let actionText = "";
-            let timeStr = new Date().toLocaleTimeString('de-DE');
-
             if (currentTask) {
                 if (currentTask.id === scannedId) {
                     stopAndLogTask();
-                    actionText = "🛑 Tätigkeit regulär beendet";
-                    showMessage(actionText, "success");
+                    showMessage("Tätigkeit regulär gestoppt.", "success");
                 } else {
                     stopAndLogTask();
                     startTask(masterEntry);
-                    actionText = "🔄 Tätigkeit nahtlos gewechselt";
-                    showMessage(actionText, "success");
+                    showMessage("Tätigkeit nahtlos gewechselt.", "success");
                 }
             } else {
                 startTask(masterEntry);
-                actionText = "▶️ Tätigkeit erfolgreich gestartet";
-                showMessage(actionText, "success");
+                showMessage("Tätigkeit gestartet.", "success");
             }
-
-            // Falls durch externen NFC-Link aufgerufen: Großen Erfolgs-Schirm zeigen
-            if (isExternalTrigger) {
-                showScanSuccessOverlay(actionText, scannedId, timeStr, masterEntry);
-            }
-        }
-
-        function showScanSuccessOverlay(action, id, timeStr, masterEntry) {
-            const overlay = document.getElementById('scan-success-overlay');
-            document.getElementById('overlay-action-title').textContent = action;
-            document.getElementById('overlay-task-id').textContent = `Code: ${id}`;
-            document.getElementById('overlay-time-stamp').textContent = `Uhrzeit: ${timeStr}`;
-            
-            const desc = [masterEntry.t1, masterEntry.t2, masterEntry.t3, masterEntry.t4].filter(Boolean).join(' • ');
-            document.getElementById('overlay-details').textContent = desc || "Erfassung synchronisiert.";
-            
-            overlay.classList.remove('hidden');
-
-            // Automatischer Schließversuch nach 2 Sekunden (funktioniert bei manchen WebViews/Android-Systemen)
-            setTimeout(() => {
-                try { window.close(); } catch(e) {}
-            }, 2000);
-        }
-
-        function closeCurrentTabOrOverlay() {
-            // Versucht zuerst den Tab zu schließen
-            window.close();
-            // Falls Chrome es blockiert: Overlay ausblenden, damit der Bildschirm aufgeräumt ist
-            document.getElementById('scan-success-overlay').classList.add('hidden');
         }
 
         function startTask(masterEntry) {
@@ -581,7 +511,7 @@
         function showMessage(text, type) {
             const box = document.getElementById('message-box');
             box.textContent = text;
-            box.className = `p-4 mb-4 rounded-xl shadow-lg text-sm font-bold text-center block ${type === 'success' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'}`;
+            box.className = `p-4 mb-4 rounded-xl shadow-lg text-sm font-bold text-center block ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
             setTimeout(() => { box.classList.add('hidden'); }, 4000);
         }
 
