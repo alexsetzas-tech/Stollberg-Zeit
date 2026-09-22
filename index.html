@@ -40,14 +40,14 @@
                         </button>
                     </div>
                     <div class="text-[11px] text-slate-300 font-mono mt-0.5" id="device-id-display">Geräte-ID: Lade...</div>
-                </div>
-
-                <!-- Versions-Badge -->
-                <span class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full border border-slate-600 font-mono">
-                    v2.2
-                </span>
             </div>
-        </header>
+
+            <!-- Versions-Badge -->
+            <span class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full border border-slate-600 font-mono">
+                v2.3
+            </span>
+        </div>
+    </header>
 
         <!-- Diagnose Fenster (Sichtbar bei Fehlern) -->
         <div id="debug-log" class="hidden bg-red-100 text-red-800 text-xs p-3 font-mono break-words border-b-2 border-red-500"></div>
@@ -412,6 +412,13 @@
             return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
         }
 
+        // Hilfsfunktion: Zeitstempel auf HH:MM ohne Sekunden kürzen
+        function formatShortTime(timeStr) {
+            if (!timeStr) return '';
+            const parts = timeStr.split(':');
+            return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : timeStr;
+        }
+
         function updateLogUI() {
             document.getElementById('log-count').textContent = logs.length;
             const list = document.getElementById('log-list');
@@ -424,7 +431,8 @@
             
             [...logs].reverse().slice(0, 50).forEach(log => {
                 const li = document.createElement('li');
-                li.className = "bg-slate-50 p-3 rounded-xl text-sm border border-slate-200 flex justify-between items-center shadow-sm";
+                // Volle Breite ohne Seitenspalte, damit mehr Platz für lange Tätigkeiten bleibt
+                li.className = "bg-slate-50 p-3.5 rounded-xl text-sm border border-slate-200 shadow-sm";
                 
                 let taetigkeitText = "";
                 if (log.dataObj) {
@@ -435,25 +443,24 @@
                     taetigkeitText = log.id;
                 }
 
+                const shortStart = formatShortTime(log.startTime);
+                const shortEnd = formatShortTime(log.endTime);
+
                 li.innerHTML = `
-                    <div class="pr-2 overflow-hidden">
-                        <div class="font-bold text-slate-900 text-sm md:text-base leading-tight truncate" title="${taetigkeitText}">
+                    <div class="w-full">
+                        <!-- Vollständige Tätigkeit im vollen Raum ohne Abschneiden -->
+                        <div class="font-bold text-slate-900 text-sm md:text-base leading-snug break-words">
                             ${taetigkeitText}
                         </div>
-                        <div class="font-bold text-slate-700 text-xs mt-1 flex flex-wrap items-center gap-1">
+                        <!-- Datum klar ersichtlich, Zeit auf Minuten gekürzt -->
+                        <div class="font-bold text-slate-700 text-xs mt-1.5 flex flex-wrap items-center gap-1.5">
                             <span>📅 ${log.startDate || 'Heute'}</span>
-                            <span class="text-slate-400 font-normal">|</span>
-                            <span>⏱️ ${log.startTime} – ${log.endTime}</span>
+                            <span class="text-slate-300 font-normal">|</span>
+                            <span>⏱️ ${shortStart} – ${shortEnd} Uhr</span>
                         </div>
-                        <div class="text-[11px] font-mono text-slate-400 mt-0.5">
+                        <div class="text-[11px] font-mono text-slate-400 mt-1">
                             Code: ${log.id}
                         </div>
-                    </div>
-                    <div class="shrink-0 ml-2">
-                        <span class="inline-flex flex-col items-center justify-center bg-green-50 text-green-700 font-bold px-3 py-2 rounded-xl border border-green-200 text-xs md:text-sm shadow-sm min-w-[75px] text-center">
-                            <span>${formatDuration(log.durationSec)}</span>
-                            <span class="text-[10px] text-green-600 font-normal">(${log.durationSec}s)</span>
-                        </span>
                     </div>
                 `;
                 list.appendChild(li);
