@@ -2,8 +2,10 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Viewport mit vollem 2-Finger-Zoom (Pinch-to-Zoom) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Hybrid Zeiterfassung Scanner</title>
+
     <!-- Tailwind CSS laden -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Kamera Bibliothek -->
@@ -23,16 +25,9 @@
 <body>
     <div class="app-container flex flex-col relative pb-20">
         <!-- Header -->
-        <header class="bg-slate-800 text-white p-4 shadow-md sticky top-0 z-50 flex justify-between items-center">
-            <div class="text-left">
-                <h1 class="text-lg font-bold">⏱️ Zeit-Scanner</h1>
-                <div class="text-[11px] text-slate-300" id="device-id-display">System startet...</div>
-            </div>
-            <!-- Kleiner Status-Indikator für Stammdaten -->
-            <div id="sync-badge" class="text-[10px] bg-slate-700 text-slate-300 px-2 py-1 rounded-full flex items-center gap-1 border border-slate-600">
-                <span id="sync-dot" class="inline-block w-2 h-2 rounded-full bg-amber-400"></span>
-                <span id="sync-text">Lade Daten...</span>
-            </div>
+        <header class="bg-slate-800 text-white p-4 shadow-md sticky top-0 z-50">
+            <h1 class="text-xl font-bold text-center">⏱️ Zeit-Scanner</h1>
+            <div class="text-xs text-center text-slate-300 mt-1" id="device-id-display">System startet...</div>
         </header>
 
         <!-- Diagnose Fenster (Sichtbar bei Fatal-Errors) -->
@@ -42,20 +37,17 @@
             <!-- Dynamische Meldungen (Toast) -->
             <div id="message-box" class="hidden p-4 mb-4 rounded-xl shadow-lg text-sm font-bold text-center transition-all"></div>
 
-            <!-- Setup Phase: Wird bei vorhandenen Daten automatisch eingeklappt, bleibt aber als Fallback erreichbar -->
+            <!-- Setup Phase: Stammdaten laden -->
             <div id="setup-section" class="bg-slate-50 p-4 rounded-xl border-2 border-dashed border-slate-300 text-center mb-6">
-                <div class="flex justify-between items-center mb-2">
-                    <h2 class="font-bold text-slate-700 text-sm">📂 Stammdaten-Verwaltung</h2>
-                    <button onclick="toggleSetupSection()" id="btn-toggle-setup" class="text-xs text-indigo-600 font-semibold underline hidden">Einklappen</button>
-                </div>
-                <p class="text-xs text-slate-500 mb-3" id="setup-hint">
-                    Die App lädt die Stammdaten automatisch von GitHub. Falls du offline bist, kannst du hier manuell importieren.
+                <h2 class="font-bold text-slate-700 mb-2">1. Stammdaten laden</h2>
+                <p class="text-xs text-slate-500 mb-4" id="setup-description">
+                    Einmalig .csv Datei hochladen oder automatisch vom Server beziehen.
                 </p>
-                <label for="master-csv-upload" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl cursor-pointer inline-block w-full shadow text-sm">
-                    Manuell .CSV importieren
+                <label for="master-csv-upload" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl cursor-pointer inline-block w-full shadow">
+                    📂 Stammdaten importieren
                 </label>
-                <input type="file" id="master-csv-upload" accept=".csv" class="hidden" onchange="loadMasterCSVManual(event)">
-                <div id="master-data-status" class="text-xs text-green-600 font-bold mt-2 hidden">✅ Daten geladen</div>
+                <input type="file" id="master-csv-upload" accept=".csv" class="hidden" onchange="loadMasterCSV(event)">
+                <div id="master-data-status" class="text-xs text-green-600 font-bold mt-3 hidden">✅ Daten aus Offline-Speicher geladen</div>
             </div>
 
             <!-- Scanner Bereich (Hybrid) -->
@@ -96,17 +88,19 @@
             <!-- Historie & Log -->
             <div class="bg-white rounded-xl shadow-md border border-slate-100 p-4">
                 <div class="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
-                    <h3 class="font-bold text-slate-700">Offline gesicherte Logs</h3>
+                    <!-- Aktualisierte Überschrift laut Anforderung -->
+                    <h3 class="font-bold text-slate-800 text-base">Arbeitszeit Liste</h3>
                     <span id="log-count" class="bg-indigo-100 text-indigo-700 text-xs py-1 px-3 rounded-full font-bold">0</span>
                 </div>
-                <ul id="log-list" class="space-y-2 mb-4 max-h-48 overflow-y-auto">
+                
+                <ul id="log-list" class="space-y-2.5 mb-4 max-h-60 overflow-y-auto">
                     <li class="text-sm text-slate-400 text-center py-4" id="empty-log-msg">Noch keine Zeiten erfasst.</li>
                 </ul>
                 
-                <button onclick="exportLogsCSV()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center mb-3">
+                <button onclick="exportLogsCSV()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center mb-3 transition-colors">
                     ⬇️ .CSV Exportieren
                 </button>
-                <button onclick="clearLogs()" class="w-full bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold py-2 rounded-xl border border-red-200">
+                <button onclick="clearLogs()" class="w-full bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold py-2 rounded-xl border border-red-200 transition-colors">
                     🗑️ Logs auf Gerät löschen
                 </button>
             </div>
@@ -133,13 +127,13 @@
 
         window.onload = function() {
             setTimeout(initApp, 150);
-            
-            // Tab-Synchronisation
+
+            // Tab-Synchronisation: Hält alle offenen Fenster im Hintergrund synchron
             window.addEventListener('storage', function(e) {
                 if (e.key === 'zf_active_task') {
                     if (!e.newValue) {
                         currentTask = null;
-                        if(timerInterval) clearInterval(timerInterval);
+                        if (timerInterval) clearInterval(timerInterval);
                         document.getElementById('active-task-section').classList.add('hidden');
                     } else {
                         currentTask = JSON.parse(e.newValue);
@@ -156,11 +150,13 @@
 
         async function initApp() {
             try {
-                // 1. UUID laden oder initial erzeugen
-                deviceId = localStorage.getItem('zf_device_id');
+                // 1. Geräte-ID laden oder initial erzeugen (kompatibel zu beiden Schlüsseln)
+                deviceId = localStorage.getItem('zeiterfassung_device_id') || localStorage.getItem('zf_device_id');
                 if (!deviceId) {
                     deviceId = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-                    localStorage.setItem('zf_device_id', deviceId);
+                    localStorage.setItem('zeiterfassung_device_id', deviceId);
+                } else {
+                    localStorage.setItem('zeiterfassung_device_id', deviceId);
                 }
                 document.getElementById('device-id-display').textContent = `Geräte-ID: ${deviceId}`;
 
@@ -170,38 +166,27 @@
                     if (nfcBtn) {
                         nfcBtn.classList.replace('bg-blue-600', 'bg-slate-300');
                         nfcBtn.classList.replace('text-white', 'text-slate-500');
-                        nfcBtn.onclick = () => showMessage("Web NFC wird von diesem Browser nicht unterstützt. Bitte Scanner-Link nutzen.", "error");
+                        nfcBtn.onclick = () => showMessage("Web NFC wird von diesem Gerät/Browser nicht direkt unterstützt. Bitte Scanner-Link nutzen.", "error");
                     }
                 }
 
-                // 3. Lokale Offline-Daten vorladen (schneller Start)
-                loadLocalOfflineData();
+                // 3. Lokale Offline-Daten vorladen
+                loadOfflineData();
 
-                // 4. Automatischen Download der Stammdaten von GitHub versuchen
+                // 4. Falls auf GitHub gehostet: Stammdaten im Hintergrund prüfen
                 await autoFetchMasterData();
 
                 // 5. Prüfen, ob die URL einen Scan-Trigger enthält (?id=XYZ)
                 checkAutoTrigger();
 
             } catch (error) {
-                showMessage("Initialisierungsfehler im Speicher.", "error");
+                showMessage("Speicherfehler! Bitte privaten Modus deaktivieren.", "error");
             }
         }
 
-        // Automatischer Hintergrund-Abruf von GitHub
         async function autoFetchMasterData() {
-            const syncBadge = document.getElementById('sync-badge');
-            const syncDot = document.getElementById('sync-dot');
-            const syncText = document.getElementById('sync-text');
+            if (window.location.protocol === 'file:') return;
 
-            // Wenn lokal via file:/// getestet wird, blockieren Browser 'fetch'
-            if (window.location.protocol === 'file:') {
-                syncText.textContent = "Lokale Datei";
-                syncDot.className = "inline-block w-2 h-2 rounded-full bg-slate-400";
-                return;
-            }
-
-            // Cache-Busting Zeitstempel anhängen, damit GitHub-Aktualisierungen sofort geladen werden
             const cacheBuster = '?v=' + new Date().getTime();
             const possibleFiles = ['stammdaten.csv', 'Stammdaten.csv'];
 
@@ -216,36 +201,26 @@
                             masterData = parsed;
                             localStorage.setItem('zf_master_data', JSON.stringify(masterData));
                             
-                            // UI auf "Online Synchronisiert" setzen
-                            syncDot.className = "inline-block w-2 h-2 rounded-full bg-green-400";
-                            syncText.textContent = `Online (${masterData.length})`;
+                            const statusEl = document.getElementById('master-data-status');
+                            statusEl.textContent = `✅ ${masterData.length} Codes vom Server synchronisiert`;
+                            statusEl.classList.remove('hidden');
                             document.getElementById('scanner-section').classList.remove('hidden');
-                            
-                            // Setup-Box automatisch verstecken für saubere Ansicht
-                            collapseSetupSection();
                             return;
                         }
                     }
                 } catch (e) {
-                    console.warn(`Konnte ${filename} nicht laden:`, e);
+                    // Stiller Fallback auf lokalen Speicher
                 }
-            }
-
-            // Falls Server nicht erreichbar oder keine Datei vorhanden: Offline-Status prüfen
-            if (masterData.length > 0) {
-                syncDot.className = "inline-block w-2 h-2 rounded-full bg-blue-400";
-                syncText.textContent = `Offline-Cache (${masterData.length})`;
-                collapseSetupSection();
-            } else {
-                syncDot.className = "inline-block w-2 h-2 rounded-full bg-amber-400";
-                syncText.textContent = "Keine Stammdaten";
             }
         }
 
-        function loadLocalOfflineData() {
+        function loadOfflineData() {
             const savedMaster = localStorage.getItem('zf_master_data');
             if (savedMaster) {
                 masterData = JSON.parse(savedMaster);
+                const statusEl = document.getElementById('master-data-status');
+                statusEl.textContent = `✅ ${masterData.length} Codes offline gesichert`;
+                statusEl.classList.remove('hidden');
                 document.getElementById('scanner-section').classList.remove('hidden');
             }
 
@@ -271,7 +246,6 @@
             
             for (let i = 1; i < rows.length; i++) {
                 if (!rows[i].trim()) continue;
-                // Trennung über Semikolon (Standard unserer Generatoren)
                 const separator = rows[i].includes(';') ? ';' : ',';
                 const cols = rows[i].split(separator).map(c => c.replace(/^"|"$/g, '').trim());
                 if (cols.length >= 2) {
@@ -287,7 +261,7 @@
             return result;
         }
 
-        function loadMasterCSVManual(event) {
+        function loadMasterCSV(event) {
             const file = event.target.files[0];
             if (!file) return;
 
@@ -297,27 +271,17 @@
                 if (parsed.length > 0) {
                     masterData = parsed;
                     localStorage.setItem('zf_master_data', JSON.stringify(masterData));
+                    const statusEl = document.getElementById('master-data-status');
+                    statusEl.textContent = `✅ ${masterData.length} Codes offline gesichert`;
+                    statusEl.classList.remove('hidden');
                     document.getElementById('scanner-section').classList.remove('hidden');
-                    collapseSetupSection();
-                    showMessage(`✅ ${masterData.length} Stammdaten-Codes erfolgreich geladen!`, "success");
+                    showMessage("Stammdaten gespeichert. Scanner bereit.", "success");
                 } else {
-                    showMessage("Fehler: CSV-Datei war leer oder ungültig.", "error");
+                    showMessage("Fehler: CSV war leer oder ungültig.", "error");
                 }
             };
             reader.readAsText(file, "UTF-8");
             event.target.value = '';
-        }
-
-        function collapseSetupSection() {
-            const setupBox = document.getElementById('setup-section');
-            setupBox.classList.add('hidden');
-            const toggleBtn = document.getElementById('btn-toggle-setup');
-            toggleBtn.classList.remove('hidden');
-        }
-
-        function toggleSetupSection() {
-            const setupBox = document.getElementById('setup-section');
-            setupBox.classList.toggle('hidden');
         }
 
         function startQrScanner() {
@@ -332,7 +296,7 @@
                 stopAllScanners();
                 processScannedId(decodedText);
             }).catch(err => {
-                showMessage("Kamerazugriff verweigert.", "error");
+                showMessage("Kamera Zugriff verweigert.", "error");
                 stopAllScanners();
             });
         }
@@ -352,6 +316,7 @@
                         if (record.recordType === "text" || record.recordType === "url") {
                             let text = decoder.decode(record.data);
                             if (text.includes('id=')) text = text.split('id=')[1].split('&')[0];
+                            
                             stopAllScanners();
                             processScannedId(text);
                             return; 
@@ -398,12 +363,16 @@
             }
 
             if (scannedId) {
+                if (navigator.vibrate) {
+                    try { navigator.vibrate([80, 50, 80]); } catch(e) {}
+                }
+
                 if (masterData.length === 0) {
-                    showMessage("Stammdaten laden noch... Bitte erneut tippen.", "error"); return;
+                    showMessage("Bitte zuerst Stammdaten importieren!", "error"); return;
                 }
                 
                 try { window.history.replaceState(null, '', window.location.pathname); } catch(e) { window.location.hash = ''; }
-                setTimeout(() => { processScannedId(scannedId); }, 300);
+                setTimeout(() => { processScannedId(scannedId); }, 250);
             }
         }
 
@@ -412,7 +381,7 @@
             const masterEntry = masterData.find(d => d.id === scannedId);
 
             if (!masterEntry) {
-                showMessage(`Fehler: Code ${scannedId} nicht in den Stammdaten gefunden!`, "error");
+                showMessage(`Fehler: Code ${scannedId} ist unbekannt!`, "error");
                 if (currentTask) stopAndLogTask();
                 return;
             }
@@ -420,15 +389,15 @@
             if (currentTask) {
                 if (currentTask.id === scannedId) {
                     stopAndLogTask();
-                    showMessage("Tätigkeit regulär gestoppt.", "success");
+                    showMessage("🛑 Tätigkeit regulär gestoppt.", "success");
                 } else {
                     stopAndLogTask();
                     startTask(masterEntry);
-                    showMessage("Tätigkeit nahtlos gewechselt.", "success");
+                    showMessage("🔄 Tätigkeit nahtlos gewechselt.", "success");
                 }
             } else {
                 startTask(masterEntry);
-                showMessage("Tätigkeit gestartet.", "success");
+                showMessage("▶️ Tätigkeit gestartet.", "success");
             }
         }
 
@@ -489,6 +458,19 @@
             }, 1000);
         }
 
+        // Hilfsfunktion: Sekunden in ein sauberes Zeitformat (hh:mm:ss oder mm:ss) umwandeln
+        function formatDuration(sec) {
+            if (isNaN(sec) || sec < 0) return "00:00";
+            const h = Math.floor(sec / 3600);
+            const m = Math.floor((sec % 3600) / 60);
+            const s = sec % 60;
+            if (h > 0) {
+                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            }
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        // Aktualisierte Listenansicht (Arbeitszeit Liste)
         function updateLogUI() {
             document.getElementById('log-count').textContent = logs.length;
             const list = document.getElementById('log-list');
@@ -501,9 +483,40 @@
             
             [...logs].reverse().slice(0, 50).forEach(log => {
                 const li = document.createElement('li');
-                li.className = "bg-slate-50 p-3 rounded-lg text-sm border border-slate-200 flex justify-between items-center shadow-sm";
-                li.innerHTML = `<div><div class="font-bold text-slate-700">${log.id}</div><div class="text-xs text-slate-400">${log.startTime} - ${log.endTime}</div></div>
-                                <span class="text-green-600 font-bold bg-green-50 px-2 py-1 rounded border border-green-100">${log.durationSec}s</span>`;
+                li.className = "bg-slate-50 p-3 rounded-xl text-sm border border-slate-200 flex justify-between items-center shadow-sm";
+                
+                // Ermittlung der Tätigkeit aus den Stammdaten
+                let taetigkeitText = "";
+                if (log.dataObj) {
+                    const parts = [log.dataObj.t1, log.dataObj.t2, log.dataObj.t3, log.dataObj.t4]
+                        .filter(t => t && t.trim() !== '');
+                    taetigkeitText = parts.length > 0 ? parts.join(' • ') : log.id;
+                } else {
+                    taetigkeitText = log.id;
+                }
+
+                // Aufbau: Tätigkeit in fett, Tag mit Start/Stopzeit in fett, rechts der Statusbalken
+                li.innerHTML = `
+                    <div class="pr-2 overflow-hidden">
+                        <div class="font-bold text-slate-900 text-sm md:text-base leading-tight truncate" title="${taetigkeitText}">
+                            ${taetigkeitText}
+                        </div>
+                        <div class="font-bold text-slate-700 text-xs mt-1 flex flex-wrap items-center gap-1">
+                            <span>📅 ${log.startDate || 'Heute'}</span>
+                            <span class="text-slate-400 font-normal">|</span>
+                            <span>⏱️ ${log.startTime} – ${log.endTime}</span>
+                        </div>
+                        <div class="text-[11px] font-mono text-slate-400 mt-0.5">
+                            Code: ${log.id}
+                        </div>
+                    </div>
+                    <div class="shrink-0 ml-2">
+                        <span class="inline-flex flex-col items-center justify-center bg-green-50 text-green-700 font-bold px-3 py-2 rounded-xl border border-green-200 text-xs md:text-sm shadow-sm min-w-[75px] text-center">
+                            <span>${formatDuration(log.durationSec)}</span>
+                            <span class="text-[10px] text-green-600 font-normal">(${log.durationSec}s)</span>
+                        </span>
+                    </div>
+                `;
                 list.appendChild(li);
             });
         }
@@ -511,7 +524,7 @@
         function showMessage(text, type) {
             const box = document.getElementById('message-box');
             box.textContent = text;
-            box.className = `p-4 mb-4 rounded-xl shadow-lg text-sm font-bold text-center block ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            box.className = `p-4 mb-4 rounded-xl shadow-lg text-sm font-bold text-center block ${type === 'success' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'}`;
             setTimeout(() => { box.classList.add('hidden'); }, 4000);
         }
 
