@@ -21,6 +21,11 @@
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); }
         }
         .tag { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; margin: 2px; color: white; }
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.95s linear;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
     </style>
 </head>
 <body>
@@ -40,14 +45,14 @@
                         </button>
                     </div>
                     <div class="text-[11px] text-slate-300 font-mono mt-0.5" id="device-id-display">Geräte-ID: Lade...</div>
-            </div>
+                </div>
 
-            <!-- Versions-Badge -->
-            <span class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full border border-slate-600 font-mono">
-                v2.3
-            </span>
-        </div>
-    </header>
+                <!-- Versions-Badge mit Versionsstand v2.4 -->
+                <span class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full border border-slate-600 font-mono">
+                    v2.4
+                </span>
+            </div>
+        </header>
 
         <!-- Diagnose Fenster (Sichtbar bei Fehlern) -->
         <div id="debug-log" class="hidden bg-red-100 text-red-800 text-xs p-3 font-mono break-words border-b-2 border-red-500"></div>
@@ -68,7 +73,7 @@
                 </button>
             </div>
 
-            <!-- Aktive Tätigkeit (Timer) -->
+            <!-- Aktive Tätigkeit (Timer) in der Normalansicht -->
             <div id="active-task-section" class="hidden bg-white rounded-xl shadow-lg border-2 border-green-400 p-5 mb-5 text-center pulsing">
                 <div class="text-xs font-bold text-green-600 uppercase tracking-wider mb-2">▶ Laufende Tätigkeit</div>
                 <div id="active-time" class="text-4xl font-mono font-bold text-slate-800 mb-3 border-b border-slate-100 pb-3">00:00:00</div>
@@ -97,8 +102,61 @@
             </div>
         </main>
 
+        <!-- Schwebendes Fenster (Floating Window / Prellschutz-Modal) -->
+        <div id="floating-modal" class="fixed inset-0 bg-slate-950/80 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md transition-all">
+            <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-2 border-emerald-500 text-center flex flex-col items-center animate-bounce-short">
+                
+                <!-- Status & Badge -->
+                <div class="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded-full font-bold mb-3 border border-emerald-300">
+                    <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span id="floating-status-badge">Laufende Tätigkeit</span>
+                </div>
+
+                <!-- Vollständiger Tätigkeitsname und Text -->
+                <h3 id="floating-task-title" class="font-extrabold text-slate-900 text-lg md:text-xl leading-snug break-words mb-2 px-1">
+                    Lade Tätigkeit...
+                </h3>
+
+                <!-- Code ID Kennung -->
+                <div class="text-xs font-mono font-bold text-slate-500 mb-4 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200" id="floating-code-display">
+                    Code: ID-XXXXXX
+                </div>
+
+                <!-- Tickende Sekunden & Prellschutz-Visualisierung -->
+                <div class="relative w-28 h-28 my-1 flex items-center justify-center">
+                    <svg class="w-28 h-28">
+                        <circle class="text-slate-100" stroke-width="6" stroke="currentColor" fill="transparent" r="48" cx="56" cy="56" />
+                        <circle id="countdown-circle" class="text-emerald-500 progress-ring-circle" stroke-width="6" stroke-linecap="round" stroke="currentColor" fill="transparent" r="48" cx="56" cy="56" stroke-dasharray="301.59" stroke-dashoffset="0" />
+                    </svg>
+                    <div class="absolute flex flex-col items-center justify-center">
+                        <span id="floating-countdown-number" class="text-3xl font-mono font-black text-slate-800">10</span>
+                        <span class="text-[9px] uppercase font-bold text-slate-400">Sekunden</span>
+                    </div>
+                </div>
+
+                <div class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-1.5 my-3 font-medium">
+                    🔒 Scan-Sperre aktiv (Schutz vor Doppelscans)
+                </div>
+
+                <!-- Die beiden Haupt-Aktionsbuttons: Grüner Button & Roter Button -->
+                <div class="w-full space-y-2 mt-2">
+                    <!-- Grüner Button: Normalansicht / In App bleiben -->
+                    <button onclick="dismissFloatingModal(true)" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 text-sm transition-all border border-emerald-500">
+                        <span>🟢</span>
+                        <span>Normalansicht (In App bleiben)</span>
+                    </button>
+
+                    <!-- Roter Button: Abbrechen / Buchung stornieren -->
+                    <button onclick="cancelFloatingTask()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 active:scale-95 font-bold py-2.5 px-4 rounded-xl border border-rose-200 flex items-center justify-center gap-2 text-xs transition-all">
+                        <span>🔴</span>
+                        <span>Abbrechen (Buchung verwerfen)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Custom Lösch-Bestätigung (Kein natives confirm()) -->
-        <div id="delete-modal" class="fixed inset-0 bg-slate-900/60 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-xs">
+        <div id="delete-modal" class="fixed inset-0 bg-slate-900/60 z-[300] hidden flex items-center justify-center p-4 backdrop-blur-xs">
             <div class="bg-white rounded-2xl p-5 max-w-xs w-full shadow-2xl text-center">
                 <div class="text-3xl mb-2">🗑️</div>
                 <h4 class="font-bold text-slate-800 text-sm mb-1">Logs wirklich löschen?</h4>
@@ -134,6 +192,15 @@
         let timerInterval = null;
         const levelColors = ['#3498db', '#e67e22', '#9b59b6', '#16a085'];
 
+        // Variablen für das Floating Window und den 10-Sekunden-Prellschutz
+        let isScanLocked = false;
+        let floatingCountdown = 10;
+        let floatingTimerInterval = null;
+        let previousTaskBackup = null; // Backup zur Wiederherstellung bei Storno
+        let lastActionType = 'start'; // 'start', 'switch', 'stop'
+        const TOTAL_COUNTDOWN_SECONDS = 10;
+        const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 48; // ca. 301.59
+
         window.onload = function() {
             setTimeout(initApp, 100);
 
@@ -160,14 +227,12 @@
         async function initApp() {
             try {
                 // 1. Eindeutige Geräte-ID laden oder initial erzeugen
-                // Wir prüfen beide historisch genutzten Speicher-Schlüssel, damit bestehende IDs erhalten bleiben
                 deviceId = localStorage.getItem('zeiterfassung_device_id') || localStorage.getItem('zf_device_id');
                 if (!deviceId) {
                     deviceId = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
                     localStorage.setItem('zeiterfassung_device_id', deviceId);
                     localStorage.setItem('zf_device_id', deviceId);
                 } else {
-                    // Synchronisiere beide Schlüssel für absolute Konsistenz
                     localStorage.setItem('zeiterfassung_device_id', deviceId);
                     localStorage.setItem('zf_device_id', deviceId);
                 }
@@ -176,7 +241,7 @@
                 // 2. Lokale Offline-Daten vorladen
                 loadOfflineData();
 
-                // 3. Automatischer, lautloser Stammdaten-Abruf von GitHub im Hintergrund
+                // 3. Automatischer Stammdaten-Abruf im Hintergrund
                 await autoFetchMasterData();
 
                 // 4. Prüfen, ob die URL einen Scan-Trigger enthält (?id=XYZ)
@@ -187,7 +252,6 @@
             }
         }
 
-        // Lautloser Stammdaten-Abruf im Hintergrund (keine UI-Störung)
         async function autoFetchMasterData() {
             if (window.location.protocol === 'file:') return;
 
@@ -257,6 +321,11 @@
         }
 
         function startQrScanner() {
+            if (isScanLocked) {
+                showMessage("⏳ Scan-Sperre noch aktiv! Bitte warten.", "error");
+                return;
+            }
+
             if (typeof Html5Qrcode === 'undefined') {
                 showMessage("Fehler: Scanner-Bibliothek lädt noch.", "error"); 
                 return;
@@ -264,8 +333,6 @@
 
             const container = document.getElementById('scanner-modal-container');
             container.classList.remove('hidden');
-
-            // Scrollt sauber zum Scanner falls die Liste lang ist
             container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
             html5QrcodeScanner = new Html5Qrcode("qr-reader");
@@ -301,6 +368,13 @@
             }
 
             if (scannedId) {
+                // Prellschutz: Falls die Scan-Sperre aktiv ist, wird der Scan ignoriert
+                if (isScanLocked) {
+                    console.warn("Scan-Sperre aktiv: Doppelscan geblockt für ID:", scannedId);
+                    try { window.history.replaceState(null, '', window.location.pathname); } catch(e) { window.location.hash = ''; }
+                    return;
+                }
+
                 if (navigator.vibrate) {
                     try { navigator.vibrate([80, 50, 80]); } catch(e) {}
                 }
@@ -315,11 +389,17 @@
                 } catch(e) { 
                     window.location.hash = ''; 
                 }
-                setTimeout(() => { processScannedId(scannedId); }, 200);
+                setTimeout(() => { processScannedId(scannedId); }, 150);
             }
         }
 
         function processScannedId(scannedText) {
+            // Hardlock-Prüfung: Ist die Scan-Sperre aktiv?
+            if (isScanLocked) {
+                showMessage("⏳ Scan-Sperre aktiv: Doppelscan verhindert.", "error");
+                return;
+            }
+
             const scannedId = scannedText.trim();
             const masterEntry = masterData.find(d => d.id === scannedId);
 
@@ -329,18 +409,28 @@
                 return;
             }
 
+            // Sicherung des aktuellen Tasks für eventuellen Storno-Klick
+            previousTaskBackup = currentTask ? JSON.parse(JSON.stringify(currentTask)) : null;
+
             if (currentTask) {
                 if (currentTask.id === scannedId) {
+                    // Fall 1: Selber Code erneut gescannt -> Regulär stoppen
+                    lastActionType = 'stop';
+                    const stoppedTask = currentTask;
                     stopAndLogTask();
-                    showMessage("🛑 Tätigkeit regulär gestoppt.", "success");
+                    showFloatingModal(stoppedTask.dataObj, stoppedTask.id, 'gestoppt');
                 } else {
+                    // Fall 2: Anderer Code gescannt -> Alte Tätigkeit stoppen, neue starten
+                    lastActionType = 'switch';
                     stopAndLogTask();
                     startTask(masterEntry);
-                    showMessage("🔄 Tätigkeit nahtlos gewechselt.", "success");
+                    showFloatingModal(masterEntry, masterEntry.id, 'gewechselt');
                 }
             } else {
+                // Fall 3: Keine aktive Tätigkeit -> Neu starten
+                lastActionType = 'start';
                 startTask(masterEntry);
-                showMessage("▶️ Tätigkeit gestartet.", "success");
+                showFloatingModal(masterEntry, masterEntry.id, 'gestartet');
             }
         }
 
@@ -353,13 +443,13 @@
         function stopAndLogTask() {
             clearInterval(timerInterval);
             const endTime = new Date();
-            const durationSec = Math.floor((endTime - currentTask.startTime) / 1000);
+            const durationSec = Math.floor((endTime - new Date(currentTask.startTime)) / 1000);
             
             logs.push({
                 deviceId: deviceId, 
                 id: currentTask.id,
-                startDate: currentTask.startTime.toLocaleDateString('de-DE'),
-                startTime: currentTask.startTime.toLocaleTimeString('de-DE'),
+                startDate: new Date(currentTask.startTime).toLocaleDateString('de-DE'),
+                startTime: new Date(currentTask.startTime).toLocaleTimeString('de-DE'),
                 endTime: endTime.toLocaleTimeString('de-DE'),
                 durationSec: durationSec, 
                 dataObj: currentTask.dataObj
@@ -393,7 +483,7 @@
 
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(() => {
-                const diffSeconds = Math.floor((new Date() - currentTask.startTime) / 1000);
+                const diffSeconds = Math.floor((new Date() - new Date(currentTask.startTime)) / 1000);
                 const h = String(Math.floor(diffSeconds / 3600)).padStart(2, '0');
                 const m = String(Math.floor((diffSeconds % 3600) / 60)).padStart(2, '0');
                 const s = String(diffSeconds % 60).padStart(2, '0');
@@ -401,18 +491,153 @@
             }, 1000);
         }
 
-        function formatDuration(sec) {
-            if (isNaN(sec) || sec < 0) return "00:00";
-            const h = Math.floor(sec / 3600);
-            const m = Math.floor((sec % 3600) / 60);
-            const s = sec % 60;
-            if (h > 0) {
-                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        function showFloatingModal(dataObj, codeId, actionLabel) {
+            // 1. Scan-Sperre aktivieren
+            isScanLocked = true;
+            floatingCountdown = TOTAL_COUNTDOWN_SECONDS;
+
+            // 2. Tätigkeitsbezeichnung im Klartext aufbauen
+            let fullText = "";
+            if (dataObj) {
+                const parts = [dataObj.t1, dataObj.t2, dataObj.t3, dataObj.t4].filter(t => t && t.trim() !== '');
+                fullText = parts.length > 0 ? parts.join(' • ') : codeId;
+            } else {
+                fullText = codeId;
             }
-            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+            document.getElementById('floating-task-title').textContent = fullText;
+            document.getElementById('floating-code-display').textContent = `Code: ${codeId}`;
+
+            const badge = document.getElementById('floating-status-badge');
+            if (actionLabel === 'gestoppt') {
+                badge.textContent = "🛑 Tätigkeit gestoppt";
+                badge.className = "inline-flex items-center gap-1.5 bg-rose-100 text-rose-800 text-xs px-3 py-1 rounded-full font-bold mb-3 border border-rose-300";
+            } else if (actionLabel === 'gewechselt') {
+                badge.textContent = "🔄 Tätigkeit gewechselt";
+                badge.className = "inline-flex items-center gap-1.5 bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-bold mb-3 border border-blue-300";
+            } else {
+                badge.textContent = "⏱️ Laufende Tätigkeit";
+                badge.className = "inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded-full font-bold mb-3 border border-emerald-300";
+            }
+
+            // 3. Countdown initialisieren
+            updateFloatingCountdownDisplay();
+            const modal = document.getElementById('floating-modal');
+            modal.classList.remove('hidden');
+
+            if (floatingTimerInterval) clearInterval(floatingTimerInterval);
+            floatingTimerInterval = setInterval(() => {
+                floatingCountdown--;
+                updateFloatingCountdownDisplay();
+
+                if (floatingCountdown <= 0) {
+                    clearInterval(floatingTimerInterval);
+                    floatingTimerInterval = null;
+                    handleFloatingAutoClose();
+                }
+            }, 1000);
         }
 
-        // Hilfsfunktion: Zeitstempel auf HH:MM ohne Sekunden kürzen
+        function updateFloatingCountdownDisplay() {
+            document.getElementById('floating-countdown-number').textContent = floatingCountdown;
+            const circle = document.getElementById('countdown-circle');
+            if (circle) {
+                // Progress-Ring aktualisieren
+                const offset = CIRCLE_CIRCUMFERENCE - (floatingCountdown / TOTAL_COUNTDOWN_SECONDS) * CIRCLE_CIRCUMFERENCE;
+                circle.style.strokeDashoffset = offset;
+            }
+        }
+
+        function dismissFloatingModal(keepAppOpen) {
+            if (floatingTimerInterval) {
+                clearInterval(floatingTimerInterval);
+                floatingTimerInterval = null;
+            }
+            document.getElementById('floating-modal').classList.add('hidden');
+            
+            // Scan-Sperre sofort aufheben (bereit für den nächsten Scan)
+            isScanLocked = false;
+
+            if (keepAppOpen) {
+                showMessage("✅ Normalansicht aktiv. Tätigkeit läuft sicher weiter.", "success");
+            }
+        }
+
+        function handleFloatingAutoClose() {
+            // Nach 10 Sekunden schließt das Floating Window
+            document.getElementById('floating-modal').classList.add('hidden');
+            isScanLocked = false;
+
+            // Zeit läuft normal im Hintergrund weiter
+            // Versuche gleichzeitig das Browserfenster automatisch zu schließen
+            tryCloseBrowserWindow();
+        }
+
+        function tryCloseBrowserWindow() {
+            try {
+                window.close();
+            } catch(e) {
+                console.log("Browser hat window.close() blockiert.");
+            }
+            
+            // Falls der Browser das Schließen verweigert (Standard bei Links via NFC)
+            showMessage("✅ Tätigkeit läuft sicher weiter. Smartphone kann gesperrt werden.", "success");
+        }
+
+        function cancelFloatingTask() {
+            if (floatingTimerInterval) {
+                clearInterval(floatingTimerInterval);
+                floatingTimerInterval = null;
+            }
+            document.getElementById('floating-modal').classList.add('hidden');
+            isScanLocked = false;
+
+            // Logik für den Roten Button: Fehlbuchung verwerfen & Storno
+            if (lastActionType === 'start') {
+                // Die gerade gestartete Buchung komplett verwerfen
+                clearInterval(timerInterval);
+                currentTask = null;
+                localStorage.removeItem('zf_active_task');
+                document.getElementById('active-task-section').classList.add('hidden');
+            } else if (lastActionType === 'switch') {
+                // Neuer Task verwerfen und vorigen Task reaktivieren
+                clearInterval(timerInterval);
+                if (previousTaskBackup) {
+                    currentTask = previousTaskBackup;
+                    currentTask.startTime = new Date(currentTask.startTime);
+                    localStorage.setItem('zf_active_task', JSON.stringify(currentTask));
+                    restoreActiveTaskUI();
+                } else {
+                    currentTask = null;
+                    localStorage.removeItem('zf_active_task');
+                    document.getElementById('active-task-section').classList.add('hidden');
+                }
+                // Letzten Log (der das vorzeitige Beenden geloggt hat) entfernen
+                if (logs.length > 0) {
+                    logs.pop();
+                    localStorage.setItem('zf_logs', JSON.stringify(logs));
+                    updateLogUI();
+                }
+            } else if (lastActionType === 'stop') {
+                // Falls ein Stopp versehentlich war: Vorigen Task wiederherstellen
+                if (logs.length > 0) {
+                    const lastLog = logs.pop();
+                    localStorage.setItem('zf_logs', JSON.stringify(logs));
+                    updateLogUI();
+                    
+                    if (previousTaskBackup) {
+                        currentTask = previousTaskBackup;
+                        currentTask.startTime = new Date(currentTask.startTime);
+                        localStorage.setItem('zf_active_task', JSON.stringify(currentTask));
+                        restoreActiveTaskUI();
+                    }
+                }
+            }
+
+            showMessage("↩️ Buchung storniert. Bereit für neuen Scan.", "success");
+            tryCloseBrowserWindow();
+        }
+
         function formatShortTime(timeStr) {
             if (!timeStr) return '';
             const parts = timeStr.split(':');
@@ -431,7 +656,6 @@
             
             [...logs].reverse().slice(0, 50).forEach(log => {
                 const li = document.createElement('li');
-                // Volle Breite ohne Seitenspalte, damit mehr Platz für lange Tätigkeiten bleibt
                 li.className = "bg-slate-50 p-3.5 rounded-xl text-sm border border-slate-200 shadow-sm";
                 
                 let taetigkeitText = "";
@@ -448,11 +672,9 @@
 
                 li.innerHTML = `
                     <div class="w-full">
-                        <!-- Vollständige Tätigkeit im vollen Raum ohne Abschneiden -->
                         <div class="font-bold text-slate-900 text-sm md:text-base leading-snug break-words">
                             ${taetigkeitText}
                         </div>
-                        <!-- Datum klar ersichtlich, Zeit auf Minuten gekürzt -->
                         <div class="font-bold text-slate-700 text-xs mt-1.5 flex flex-wrap items-center gap-1.5">
                             <span>📅 ${log.startDate || 'Heute'}</span>
                             <span class="text-slate-300 font-normal">|</span>
@@ -503,7 +725,6 @@
             a.click();
         }
 
-        // Custom Modal statt browser-nativem confirm()
         function promptClearLogs() {
             document.getElementById('delete-modal').classList.remove('hidden');
         }
