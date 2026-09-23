@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=5.0, user-scalable=yes">
-    <title>⏱️ Zeit-Scanner v2.7</title>
+    <title>⏱️ Zeit-Scanner v2.8</title>
 
     <!-- Tailwind CSS laden -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -34,7 +34,7 @@
 <body>
     <div class="app-container flex flex-col relative pb-16">
         
-        <!-- Header mit Versionsplakette v2.7 -->
+        <!-- Header mit Versionsplakette v2.8 -->
         <header class="bg-slate-800 text-white p-3.5 shadow-md sticky top-0 z-50">
             <div class="flex justify-between items-center">
                 <div class="text-left">
@@ -50,9 +50,9 @@
                     <div class="text-[11px] text-slate-300 font-mono mt-0.5" id="device-id-display">Geräte-ID: Lade...</div>
                 </div>
 
-                <!-- Versions-Badge: v2.7 signalisiert den dreifachen Multi-Layer Hardlock -->
+                <!-- Versions-Badge: v2.8 signalisiert die optimierte Abbruch-Logik -->
                 <span class="text-[10px] bg-amber-500 text-slate-950 font-black px-2.5 py-1 rounded-full border border-amber-300 font-mono shadow-sm">
-                    v2.7 Hardlock
+                    v2.8 Hardlock
                 </span>
             </div>
         </header>
@@ -150,7 +150,7 @@
                         <span>Normalansicht (In App bleiben)</span>
                     </button>
 
-                    <!-- Roter Button: Abbrechen / Buchung stornieren -->
+                    <!-- Roter Button: Abbrechen / Zeit stoppen & keine Buchung erstellen -->
                     <button onclick="cancelFloatingTask()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 active:scale-95 font-bold py-2.5 px-4 rounded-xl border border-rose-200 flex items-center justify-center gap-2 text-xs transition-all">
                         <span>🔴</span>
                         <span>Abbrechen (Buchung verwerfen)</span>
@@ -213,7 +213,6 @@
         // DREIFACHE MULTI-LAYER PRELLSCHUTZ-PRÜFUNG
         // ==========================================
 
-        // 1. Barriere: Ist ein zeitlicher Lock im Speicher aktiv?
         function isStorageLockActive() {
             try {
                 // A) LocalStorage Check
@@ -486,7 +485,6 @@
         }
 
         function processScannedId(scannedText, lockAlreadyClaimed) {
-            // Prüfung: Falls der Lock nicht schon reserviert war, jetzt zwingend prüfen:
             if (!lockAlreadyClaimed && isStorageLockActive()) {
                 triggerScanBlockedFeedback();
                 checkAndRestoreLockedModal();
@@ -512,7 +510,6 @@
                 if (elapsedSec < COOLDOWN_SECONDS) {
                     console.warn(`🛑 Prellschutz aktiv: Tätigkeit läuft erst seit ${Math.round(elapsedSec)}s. Stopp abgewiesen.`);
                     triggerScanBlockedFeedback();
-                    // Modal mit Status "Laufend" aktiv halten
                     activateAndShowFloatingModal(currentTask.dataObj, currentTask.id, 'gestartet');
                     return;
                 }
@@ -522,7 +519,7 @@
                 try { navigator.vibrate([80, 50, 80]); } catch(e) {}
             }
 
-            // Sicherung des vorherigen Zustands für eventuellen Storno-Klick
+            // Sicherung des vorherigen Zustands
             previousTaskBackup = currentTask ? JSON.parse(JSON.stringify(currentTask)) : null;
 
             if (currentTask) {
@@ -681,7 +678,7 @@
             releaseMultiLayerLock();
 
             if (keepAppOpen) {
-                showMessage("✅ Normalansicht aktiv. Tätigkeit läuft sicher weiter.", "success");
+                showMessage("✅ Normalansicht aktiv.", "success");
             }
         }
 
@@ -695,9 +692,13 @@
             try {
                 window.close();
             } catch(e) {}
-            showMessage("✅ Tätigkeit läuft sicher weiter. Smartphone kann gesperrt werden.", "success");
+            showMessage("✅ Tätigkeit beendet / gespeichert. Smartphone kann gesperrt werden.", "success");
         }
 
+        // ==============================================================
+        // KERN-ANPASSUNG: Abbruch-Logik für Start, Stopp und Wechsel
+        // Regel: Stoppe Zeit, schließe Fenster, mach KEINE Buchung!
+        // ==============================================================
         function cancelFloatingTask() {
             if (floatingTimerInterval) {
                 clearInterval(floatingTimerInterval);
@@ -706,45 +707,28 @@
             document.getElementById('floating-modal').classList.add('hidden');
             releaseMultiLayerLock();
 
-            // Roter Button: Buchung verwerfen & vorherigen Zustand reaktivieren
-            if (lastActionType === 'start') {
-                clearInterval(timerInterval);
-                currentTask = null;
-                localStorage.removeItem('zf_active_task');
-                document.getElementById('active-task-section').classList.add('hidden');
-            } else if (lastActionType === 'switch') {
-                clearInterval(timerInterval);
-                if (previousTaskBackup) {
-                    currentTask = previousTaskBackup;
-                    currentTask.startTime = new Date(currentTask.startTime);
-                    localStorage.setItem('zf_active_task', JSON.stringify(currentTask));
-                    restoreActiveTaskUI();
-                } else {
-                    currentTask = null;
-                    localStorage.removeItem('zf_active_task');
-                    document.getElementById('active-task-section').classList.add('hidden');
-                }
+            // 1. Falls durch 'stop' oder 'switch' bereits ein Log-Eintrag in die Liste geschrieben wurde:
+            // Diesen letzten Eintrag sofort wieder rückstandslos aus dem Speicher entfernen!
+            if (lastActionType === 'stop' || lastActionType === 'switch') {
                 if (logs.length > 0) {
                     logs.pop();
                     localStorage.setItem('zf_logs', JSON.stringify(logs));
                     updateLogUI();
-                }
-            } else if (lastActionType === 'stop') {
-                if (logs.length > 0) {
-                    logs.pop();
-                    localStorage.setItem('zf_logs', JSON.stringify(logs));
-                    updateLogUI();
-                    
-                    if (previousTaskBackup) {
-                        currentTask = previousTaskBackup;
-                        currentTask.startTime = new Date(currentTask.startTime);
-                        localStorage.setItem('zf_active_task', JSON.stringify(currentTask));
-                        restoreActiveTaskUI();
-                    }
                 }
             }
 
-            showMessage("↩️ Buchung storniert. Bereit für neuen Scan.", "success");
+            // 2. In JEDEM Fall: Laufende Zeit stoppen und KEINE aktive Tätigkeit mehr laufen lassen!
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            currentTask = null;
+            previousTaskBackup = null;
+            localStorage.removeItem('zf_active_task');
+            document.getElementById('active-task-section').classList.add('hidden');
+
+            // 3. Benutzer-Feedback & Fenster schließen
+            showMessage("↩️ Buchung verworfen. Keine Zeit erfasst.", "success");
             tryCloseBrowserWindow();
         }
 
