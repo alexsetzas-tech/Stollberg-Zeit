@@ -2,13 +2,12 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <!-- Cache-Busting Direktiven: Verhindert das Zwischenspeichern veralteter Skripte auf Mobilgeräten -->
+    <!-- Aggressive Cache-Busting Direktiven für mobile Browser -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <!-- Viewport mit explizit freigegebenem 2-Finger-Zoom (0.5x bis 5.0x) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=5.0, user-scalable=yes">
-    <title>Hybrid Zeiterfassung Scanner</title>
+    <title>⏱️ Zeit-Scanner v2.7</title>
 
     <!-- Tailwind CSS laden -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -35,14 +34,14 @@
 <body>
     <div class="app-container flex flex-col relative pb-16">
         
-        <!-- Schlanker Header mit QR-Kamera-Button direkt neben dem Titel -->
+        <!-- Header mit Versionsplakette v2.7 -->
         <header class="bg-slate-800 text-white p-3.5 shadow-md sticky top-0 z-50">
             <div class="flex justify-between items-center">
                 <div class="text-left">
                     <div class="flex items-center gap-2">
                         <h1 class="text-lg font-bold tracking-tight">⏱️ Zeit-Scanner</h1>
                         
-                        <!-- Kompakter QR-Scan Button direkt neben der Überschrift -->
+                        <!-- QR-Scan Button -->
                         <button onclick="startQrScanner()" id="header-qr-btn" class="bg-slate-700 hover:bg-slate-600 active:scale-95 text-white text-xs px-2.5 py-1 rounded-lg border border-slate-600 flex items-center gap-1 shadow-sm transition-all" title="Kamera zum QR-Scannen öffnen">
                             <span>📷</span>
                             <span class="font-semibold text-[11px]">Scan</span>
@@ -51,9 +50,9 @@
                     <div class="text-[11px] text-slate-300 font-mono mt-0.5" id="device-id-display">Geräte-ID: Lade...</div>
                 </div>
 
-                <!-- Versions-Badge: v2.6 signalisiert die atomare Scan-Sperre -->
-                <span class="text-[10px] bg-emerald-700 text-emerald-100 font-bold px-2.5 py-1 rounded-full border border-emerald-500 font-mono shadow-sm">
-                    v2.6
+                <!-- Versions-Badge: v2.7 signalisiert den dreifachen Multi-Layer Hardlock -->
+                <span class="text-[10px] bg-amber-500 text-slate-950 font-black px-2.5 py-1 rounded-full border border-amber-300 font-mono shadow-sm">
+                    v2.7 Hardlock
                 </span>
             </div>
         </header>
@@ -65,7 +64,7 @@
             <!-- Dynamische Status-Meldungen (Toast) -->
             <div id="message-box" class="hidden p-3.5 mb-4 rounded-xl shadow-lg text-sm font-bold text-center transition-all"></div>
 
-            <!-- Kamera-Sucher Bereich (Wird nur aufgeklappt, wenn oben auf 📷 Scan getippt wird) -->
+            <!-- Kamera-Sucher Bereich (QR) -->
             <div id="scanner-modal-container" class="hidden mb-5 bg-slate-900 p-3.5 rounded-2xl shadow-xl border border-slate-700">
                 <div class="flex justify-between items-center text-white text-xs px-1 mb-2 font-bold">
                     <span>📷 QR-Code im Sucher ausrichten</span>
@@ -86,7 +85,7 @@
                 <div class="mt-4 text-[11px] text-slate-400">Scanne diesen Code erneut, um zu stoppen,<br>oder einen neuen, um direkt zu wechseln.</div>
             </div>
 
-            <!-- Historie & Log: Arbeitszeit Liste direkt im Fokus -->
+            <!-- Historie & Log: Arbeitszeit Liste -->
             <div class="bg-white rounded-xl shadow-md border border-slate-100 p-4">
                 <div class="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
                     <h3 class="font-bold text-slate-800 text-base">Arbeitszeit Liste</h3>
@@ -138,8 +137,9 @@
                     </div>
                 </div>
 
-                <div class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-1.5 my-3 font-medium">
-                    🔒 Scan-Sperre aktiv (Schutz vor Doppelscans)
+                <div class="text-xs text-amber-800 bg-amber-50 border border-amber-300 rounded-xl px-3 py-1.5 my-3 font-semibold flex items-center gap-1.5">
+                    <span>🔒</span>
+                    <span>Scan-Sperre aktiv (Prellschutz)</span>
                 </div>
 
                 <!-- Die beiden Haupt-Aktionsbuttons: Grüner Button & Roter Button -->
@@ -159,7 +159,7 @@
             </div>
         </div>
 
-        <!-- Custom Lösch-Bestätigung (Kein natives confirm()) -->
+        <!-- Custom Lösch-Bestätigung -->
         <div id="delete-modal" class="fixed inset-0 bg-slate-900/60 z-[300] hidden flex items-center justify-center p-4 backdrop-blur-xs">
             <div class="bg-white rounded-2xl p-5 max-w-xs w-full shadow-2xl text-center">
                 <div class="text-3xl mb-2">🗑️</div>
@@ -188,10 +188,11 @@
             return false;
         };
 
-        // Schlüssel für den persistenten Festspeicher
+        // Schlüssel für die persistenten Speicherriegel
         const LOCK_KEY = 'zf_scan_locked_until';
         const LOCK_INFO_KEY = 'zf_floating_info';
-        const TOTAL_COUNTDOWN_SECONDS = 10;
+        const LAST_ACTION_KEY = 'zf_last_action_timestamp';
+        const COOLDOWN_SECONDS = 10;
         const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 48; // ca. 301.59
 
         let masterData = []; 
@@ -203,59 +204,74 @@
         const levelColors = ['#3498db', '#e67e22', '#9b59b6', '#16a085'];
 
         // Status-Variablen für das Floating Window
-        let isScanLocked = false;
         let floatingCountdown = 10;
         let floatingTimerInterval = null;
         let previousTaskBackup = null; 
         let lastActionType = 'start'; 
 
         // ==========================================
-        // ATOMARE SCAN-SPERRE (FESTSPEICHER PRÜFUNGEN)
+        // DREIFACHE MULTI-LAYER PRELLSCHUTZ-PRÜFUNG
         // ==========================================
 
+        // 1. Barriere: Ist ein zeitlicher Lock im Speicher aktiv?
         function isStorageLockActive() {
             try {
+                // A) LocalStorage Check
                 const lockUntil = parseInt(localStorage.getItem(LOCK_KEY) || '0', 10);
-                return Date.now() < lockUntil;
+                if (Date.now() < lockUntil) return true;
+
+                // B) Cookie Check (Synchron und prozessübergreifend)
+                if (document.cookie.includes('zf_hard_lock=1')) return true;
+
+                // C) Last-Action Cooldown Check
+                const lastAction = parseInt(localStorage.getItem(LAST_ACTION_KEY) || '0', 10);
+                if (Date.now() - lastAction < (COOLDOWN_SECONDS * 1000)) return true;
+
+                return false;
             } catch(e) {
-                return isScanLocked;
+                return false;
             }
         }
 
         function getRemainingLockSeconds() {
             try {
                 const lockUntil = parseInt(localStorage.getItem(LOCK_KEY) || '0', 10);
-                return Math.max(0, Math.ceil((lockUntil - Date.now()) / 1000));
+                const lastAction = parseInt(localStorage.getItem(LAST_ACTION_KEY) || '0', 10);
+                const cooldownUntil = lastAction + (COOLDOWN_SECONDS * 1000);
+                
+                const effectiveUntil = Math.max(lockUntil, cooldownUntil);
+                return Math.max(0, Math.ceil((effectiveUntil - Date.now()) / 1000));
             } catch(e) {
                 return 0;
             }
         }
 
-        function claimAtomicLock(info) {
-            const lockUntil = Date.now() + (TOTAL_COUNTDOWN_SECONDS * 1000);
+        function claimMultiLayerLock(info) {
+            const lockUntil = Date.now() + (COOLDOWN_SECONDS * 1000);
             try {
                 localStorage.setItem(LOCK_KEY, lockUntil.toString());
+                localStorage.setItem(LAST_ACTION_KEY, Date.now().toString());
                 if (info) {
                     localStorage.setItem(LOCK_INFO_KEY, JSON.stringify(info));
                 }
+                // Cookie setzen (gilt für 10 Sekunden)
+                document.cookie = `zf_hard_lock=1; max-age=${COOLDOWN_SECONDS}; path=/; SameSite=Lax`;
             } catch(e) {}
-            isScanLocked = true;
             return lockUntil;
         }
 
-        function releaseAtomicLock() {
+        function releaseMultiLayerLock() {
             try {
                 localStorage.removeItem(LOCK_KEY);
                 localStorage.removeItem(LOCK_INFO_KEY);
+                localStorage.removeItem(LAST_ACTION_KEY);
+                document.cookie = 'zf_hard_lock=; max-age=0; path=/;';
             } catch(e) {}
-            isScanLocked = false;
         }
 
         // ==========================================
         // SOFORT-PRÜFUNG BEIM SCRIPT-START (ZERO LATENCY)
         // ==========================================
-        // Dieser Block läuft SOFORT synchron bei jedem Laden/Reload/Tab-Start,
-        // noch bevor Bilder, CSS oder Netzwerkanfragen geladen werden!
         (function immediatePreFlightCheck() {
             let incomingId = null;
             try {
@@ -267,16 +283,14 @@
             } catch(e) {}
 
             if (incomingId) {
-                // Prellschutz: Ist die Sperre aktiv?
+                // Prellschutz: Ist irgendein Riegel aktiv?
                 if (isStorageLockActive()) {
                     console.warn("🚫 SOFORT-BLOCK: Scan abgewiesen für ID", incomingId, "Restzeit:", getRemainingLockSeconds());
-                    // URL sofort bereinigen, damit kein Folge-Trigger entsteht
                     try { window.history.replaceState(null, '', window.location.pathname); } catch(e) { window.location.hash = ''; }
-                    // Markierung setzen, damit der spätere initApp-Ablauf diesen Scan ignoriert!
                     window._blockedByAtomicLock = true;
                 } else {
-                    // WICHTIGSTE NEUERUNG: Sperre SOFORT in Millisekunde 0 reservieren!
-                    claimAtomicLock({ codeId: incomingId.trim(), actionLabel: 'wird gebucht...' });
+                    // Lock SOFORT in der ersten Millisekunde reservieren!
+                    claimMultiLayerLock({ codeId: incomingId.trim(), actionLabel: 'wird gebucht...' });
                     try { window.history.replaceState(null, '', window.location.pathname); } catch(e) { window.location.hash = ''; }
                     window._atomicScanPendingId = incomingId.trim();
                 }
@@ -284,7 +298,7 @@
         })();
 
         window.onload = function() {
-            setTimeout(initApp, 50);
+            setTimeout(initApp, 30);
 
             // Tab-Synchronisation
             window.addEventListener('storage', function(e) {
@@ -303,11 +317,9 @@
                     logs = JSON.parse(e.newValue);
                     updateLogUI();
                 }
-                // Wenn die Sperre in einem anderen Tab aufgehoben wurde
                 if (e.key === LOCK_KEY && !e.newValue) {
                     dismissFloatingModal(false);
                 }
-                // Wenn ein anderer Tab die Sperre aktiviert hat, Modal synchronisieren
                 if (e.key === LOCK_KEY && e.newValue) {
                     checkAndRestoreLockedModal();
                 }
@@ -316,13 +328,10 @@
 
         async function initApp() {
             try {
-                // 1. Eindeutige Geräte-ID laden oder initial erzeugen
+                // 1. Eindeutige Geräte-ID laden
                 deviceId = localStorage.getItem('zeiterfassung_device_id') || localStorage.getItem('zf_device_id');
                 if (!deviceId) {
                     deviceId = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-                    localStorage.setItem('zeiterfassung_device_id', deviceId);
-                    localStorage.setItem('zf_device_id', deviceId);
-                } else {
                     localStorage.setItem('zeiterfassung_device_id', deviceId);
                     localStorage.setItem('zf_device_id', deviceId);
                 }
@@ -333,8 +342,9 @@
 
                 // 3. Wurde dieser Scan beim sofortigen Script-Start geblockt?
                 if (window._blockedByAtomicLock) {
+                    window._blockedByAtomicLock = false;
                     checkAndRestoreLockedModal();
-                    showMessage(`⏳ Prellschutz aktiv: Doppelscan verhindert (noch ${getRemainingLockSeconds()}s).`, "error");
+                    triggerScanBlockedFeedback();
                     return;
                 }
 
@@ -343,12 +353,10 @@
                 if (pendingId) {
                     window._atomicScanPendingId = null;
 
-                    // Stammdaten falls nötig synchronisieren
                     if (masterData.length === 0) {
                         await autoFetchMasterData();
                     }
 
-                    // Scan ausführen
                     processScannedId(pendingId, true);
                     return;
                 }
@@ -364,6 +372,14 @@
             } catch (error) {
                 showMessage("Speicherfehler! Bitte normalen Browser-Modus nutzen.", "error");
             }
+        }
+
+        function triggerScanBlockedFeedback() {
+            if (navigator.vibrate) {
+                try { navigator.vibrate(200); } catch(e) {}
+            }
+            const sec = getRemainingLockSeconds();
+            showMessage(`🛑 Doppelscan blockiert! Prellschutz aktiv (noch ${sec}s gesperrt).`, "error");
         }
 
         async function autoFetchMasterData() {
@@ -385,17 +401,13 @@
                             return;
                         }
                     }
-                } catch (e) {
-                    // Stiller Fallback auf vorhandene lokale Daten
-                }
+                } catch (e) {}
             }
         }
 
         function loadOfflineData() {
             const savedMaster = localStorage.getItem('zf_master_data');
-            if (savedMaster) {
-                masterData = JSON.parse(savedMaster);
-            }
+            if (savedMaster) masterData = JSON.parse(savedMaster);
 
             const savedLogs = localStorage.getItem('zf_logs');
             if (savedLogs) {
@@ -436,7 +448,7 @@
 
         function startQrScanner() {
             if (isStorageLockActive()) {
-                showMessage(`⏳ Scan-Sperre noch aktiv (${getRemainingLockSeconds()}s)! Bitte warten.`, "error");
+                triggerScanBlockedFeedback();
                 return;
             }
 
@@ -474,9 +486,9 @@
         }
 
         function processScannedId(scannedText, lockAlreadyClaimed) {
-            // Falls die Sperre nicht schon im PreFlight reserviert wurde, jetzt prüfen:
+            // Prüfung: Falls der Lock nicht schon reserviert war, jetzt zwingend prüfen:
             if (!lockAlreadyClaimed && isStorageLockActive()) {
-                showMessage(`⏳ Scan-Sperre aktiv: Doppelscan verhindert (noch ${getRemainingLockSeconds()}s).`, "error");
+                triggerScanBlockedFeedback();
                 checkAndRestoreLockedModal();
                 return;
             }
@@ -486,27 +498,42 @@
 
             if (!masterEntry) {
                 showMessage(`Fehler: Code ${scannedId} ist unbekannt!`, "error");
-                releaseAtomicLock();
-                if (currentTask) stopAndLogTask();
+                releaseMultiLayerLock();
                 return;
+            }
+
+            // ==============================================================
+            // DIE MASTER-REGEL: Mindestlaufzeit-Prüfung gegen Prellen
+            // ==============================================================
+            if (currentTask && currentTask.id === scannedId) {
+                const elapsedSec = (Date.now() - new Date(currentTask.startTime).getTime()) / 1000;
+                
+                // Läuft die Tätigkeit weniger als 10 Sekunden? -> STOPP STRIKT VERWEIGERN!
+                if (elapsedSec < COOLDOWN_SECONDS) {
+                    console.warn(`🛑 Prellschutz aktiv: Tätigkeit läuft erst seit ${Math.round(elapsedSec)}s. Stopp abgewiesen.`);
+                    triggerScanBlockedFeedback();
+                    // Modal mit Status "Laufend" aktiv halten
+                    activateAndShowFloatingModal(currentTask.dataObj, currentTask.id, 'gestartet');
+                    return;
+                }
             }
 
             if (navigator.vibrate) {
                 try { navigator.vibrate([80, 50, 80]); } catch(e) {}
             }
 
-            // Sicherung des aktuellen Tasks für eventuellen Storno-Klick
+            // Sicherung des vorherigen Zustands für eventuellen Storno-Klick
             previousTaskBackup = currentTask ? JSON.parse(JSON.stringify(currentTask)) : null;
 
             if (currentTask) {
                 if (currentTask.id === scannedId) {
-                    // Fall 1: Selber Code erneut gescannt -> Regulär stoppen
+                    // Fall 1: Selber Code erneut gescannt (nach Ablauf der 10s) -> Regulär stoppen
                     lastActionType = 'stop';
                     const stoppedTask = currentTask;
                     stopAndLogTask();
                     activateAndShowFloatingModal(stoppedTask.dataObj, stoppedTask.id, 'gestoppt');
                 } else {
-                    // Fall 2: Anderer Code gescannt -> Alte Tätigkeit stoppen, neue starten
+                    // Fall 2: Anderer Code gescannt -> Wechsel
                     lastActionType = 'switch';
                     stopAndLogTask();
                     startTask(masterEntry);
@@ -578,13 +605,12 @@
         }
 
         function activateAndShowFloatingModal(dataObj, codeId, actionLabel) {
-            claimAtomicLock({ dataObj, codeId, actionLabel });
+            claimMultiLayerLock({ dataObj, codeId, actionLabel });
             renderFloatingModalUI(dataObj, codeId, actionLabel);
         }
 
         function checkAndRestoreLockedModal() {
             if (!isStorageLockActive()) return;
-            isScanLocked = true;
             const savedInfo = localStorage.getItem(LOCK_INFO_KEY);
             if (savedInfo) {
                 try {
@@ -641,7 +667,7 @@
             document.getElementById('floating-countdown-number').textContent = floatingCountdown;
             const circle = document.getElementById('countdown-circle');
             if (circle) {
-                const offset = CIRCLE_CIRCUMFERENCE - (floatingCountdown / TOTAL_COUNTDOWN_SECONDS) * CIRCLE_CIRCUMFERENCE;
+                const offset = CIRCLE_CIRCUMFERENCE - (floatingCountdown / COOLDOWN_SECONDS) * CIRCLE_CIRCUMFERENCE;
                 circle.style.strokeDashoffset = offset;
             }
         }
@@ -652,9 +678,7 @@
                 floatingTimerInterval = null;
             }
             document.getElementById('floating-modal').classList.add('hidden');
-            
-            // Festspeicher-Sperre sofort freigeben
-            releaseAtomicLock();
+            releaseMultiLayerLock();
 
             if (keepAppOpen) {
                 showMessage("✅ Normalansicht aktiv. Tätigkeit läuft sicher weiter.", "success");
@@ -663,16 +687,14 @@
 
         function handleFloatingAutoClose() {
             document.getElementById('floating-modal').classList.add('hidden');
-            releaseAtomicLock();
+            releaseMultiLayerLock();
             tryCloseBrowserWindow();
         }
 
         function tryCloseBrowserWindow() {
             try {
                 window.close();
-            } catch(e) {
-                console.log("Browser hat window.close() blockiert.");
-            }
+            } catch(e) {}
             showMessage("✅ Tätigkeit läuft sicher weiter. Smartphone kann gesperrt werden.", "success");
         }
 
@@ -682,9 +704,9 @@
                 floatingTimerInterval = null;
             }
             document.getElementById('floating-modal').classList.add('hidden');
-            releaseAtomicLock();
+            releaseMultiLayerLock();
 
-            // Roter Button: Buchung stornieren & vorherigen Zustand reaktivieren
+            // Roter Button: Buchung verwerfen & vorherigen Zustand reaktivieren
             if (lastActionType === 'start') {
                 clearInterval(timerInterval);
                 currentTask = null;
