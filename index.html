@@ -47,9 +47,9 @@
                     <div class="text-[11px] text-slate-300 font-mono mt-0.5" id="device-id-display">Geräte-ID: Lade...</div>
                 </div>
 
-                <!-- Versions-Badge mit Versionsstand v2.4 -->
+                <!-- Versions-Badge mit Versionsstand v2.5 -->
                 <span class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full border border-slate-600 font-mono">
-                    v2.4
+                    v2.5
                 </span>
             </div>
         </header>
@@ -201,6 +201,18 @@
         const TOTAL_COUNTDOWN_SECONDS = 10;
         const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 48; // ca. 301.59
 
+        // Prüft, ob im permanenten Festspeicher noch eine aktive Scan-Sperre hinterlegt ist
+        function isStorageLockActive() {
+            const lockUntil = parseInt(localStorage.getItem('zf_scan_locked_until') || '0', 10);
+            return Date.now() < lockUntil;
+        }
+
+        // Berechnet die exakt verbleibenden Sekunden der Sperre
+        function getRemainingLockSeconds() {
+            const lockUntil = parseInt(localStorage.getItem('zf_scan_locked_until') || '0', 10);
+            return Math.max(0, Math.ceil((lockUntil - Date.now()) / 1000));
+        }
+
         window.onload = function() {
             setTimeout(initApp, 100);
 
@@ -220,6 +232,10 @@
                 if (e.key === 'zf_logs' && e.newValue) {
                     logs = JSON.parse(e.newValue);
                     updateLogUI();
+                }
+                // Falls die Sperre in einem anderen Tab aufgehoben wurde
+                if (e.key === 'zf_scan_locked_until' && !e.newValue) {
+                    dismissFloatingModal(false);
                 }
             });
         };
@@ -246,6 +262,9 @@
 
                 // 4. Prüfen, ob die URL einen Scan-Trigger enthält (?id=XYZ)
                 checkAutoTrigger();
+
+                // 5. Falls nach Reload noch ein Sperr-Countdown aktiv ist, Floating Window nahtlos wiederherstellen
+                checkAndRestoreLockedModal();
 
             } catch (error) {
                 showMessage("Speicherfehler! Bitte normalen Browser-Modus nutzen.", "error");
@@ -321,8 +340,8 @@
         }
 
         function startQrScanner() {
-            if (isScanLocked) {
-                showMessage("⏳ Scan-Sperre noch aktiv! Bitte warten.", "error");
+            if (isScanLocked || isStorageLockActive()) {
+                showMessage(`⏳ Scan-Sperre noch aktiv (${getRemainingLockSeconds()}s)! Bitte warten.`, "error");
                 return;
             }
 
@@ -368,10 +387,14 @@
             }
 
             if (scannedId) {
-                // Prellschutz: Falls die Scan-Sperre aktiv ist, wird der Scan ignoriert
-                if (isScanLocked) {
-                    console.warn("Scan-Sperre aktiv: Doppelscan geblockt für ID:", scannedId);
+                // Prellschutz: Festspeicher-Prüfung gegen Browser-Reloads und Doppel-Taps
+                if (isStorageLockActive()) {
+                    console.warn("Festspeicher-Scan-Sperre aktiv: Doppelscan geblockt für ID:", scannedId);
+                    // URL sofort bereinigen, damit kein Folge-Trigger entsteht
                     try { window.history.replaceState(null, '', window.location.pathname); } catch(e) { window.location.hash = ''; }
+                    
+                    checkAndRestoreLockedModal();
+                    showMessage(`⏳ Prellschutz aktiv: Doppelscan ignoriert (noch ${getRemainingLockSeconds()}s).`, "error");
                     return;
                 }
 
@@ -394,9 +417,10 @@
         }
 
         function processScannedId(scannedText) {
-            // Hardlock-Prüfung: Ist die Scan-Sperre aktiv?
-            if (isScanLocked) {
-                showMessage("⏳ Scan-Sperre aktiv: Doppelscan verhindert.", "error");
+            // Hardlock-Prüfung sowohl in RAM als auch im persistenten Festspeicher
+            if (isScanLocked || isStorageLockActive()) {
+                showMessage(`⏳ Scan-Sperre aktiv: Doppelscan verhindert (noch ${getRemainingLockSeconds()}s).`, "error");
+                checkAndRestoreLockedModal();
                 return;
             }
 
@@ -492,11 +516,33 @@
         }
 
         function showFloatingModal(dataObj, codeId, actionLabel) {
-            // 1. Scan-Sperre aktivieren
+            // 1. Scan-Sperre im persistenten Festspeicher (localStorage) verankern (10 Sekunden)
+            const lockUntil = Date.now() + (TOTAL_COUNTDOWN_SECONDS * 1000);
+            localStorage.setItem('zf_scan_locked_until', lockUntil.toString());
+            localStorage.setItem('zf_floating_info', JSON.stringify({
+                dataObj,
+                codeId,
+                actionLabel
+            }));
+            
             isScanLocked = true;
-            floatingCountdown = TOTAL_COUNTDOWN_SECONDS;
+            renderFloatingModalUI(dataObj, codeId, actionLabel);
+        }
 
-            // 2. Tätigkeitsbezeichnung im Klartext aufbauen
+        function checkAndRestoreLockedModal() {
+            if (!isStorageLockActive()) return;
+            isScanLocked = true;
+            const savedInfo = localStorage.getItem('zf_floating_info');
+            if (savedInfo) {
+                try {
+                    const info = JSON.parse(savedInfo);
+                    renderFloatingModalUI(info.dataObj, info.codeId, info.actionLabel);
+                } catch(e) {}
+            }
+        }
+
+        function renderFloatingModalUI(dataObj, codeId, actionLabel) {
+            // 1. Tätigkeitsbezeichnung im Klartext aufbauen
             let fullText = "";
             if (dataObj) {
                 const parts = [dataObj.t1, dataObj.t2, dataObj.t3, dataObj.t4].filter(t => t && t.trim() !== '');
@@ -520,29 +566,31 @@
                 badge.className = "inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded-full font-bold mb-3 border border-emerald-300";
             }
 
-            // 3. Countdown initialisieren
+            // 2. Countdown basierend auf exaktem Zeitstempel berechnen
+            floatingCountdown = getRemainingLockSeconds();
             updateFloatingCountdownDisplay();
             const modal = document.getElementById('floating-modal');
             modal.classList.remove('hidden');
 
             if (floatingTimerInterval) clearInterval(floatingTimerInterval);
             floatingTimerInterval = setInterval(() => {
-                floatingCountdown--;
+                const remaining = getRemainingLockSeconds();
+                floatingCountdown = remaining;
                 updateFloatingCountdownDisplay();
 
-                if (floatingCountdown <= 0) {
+                if (remaining <= 0) {
                     clearInterval(floatingTimerInterval);
                     floatingTimerInterval = null;
                     handleFloatingAutoClose();
                 }
-            }, 1000);
+            }, 500);
         }
 
         function updateFloatingCountdownDisplay() {
             document.getElementById('floating-countdown-number').textContent = floatingCountdown;
             const circle = document.getElementById('countdown-circle');
             if (circle) {
-                // Progress-Ring aktualisieren
+                // Progress-Ring proportional zur Restzeit aktualisieren
                 const offset = CIRCLE_CIRCUMFERENCE - (floatingCountdown / TOTAL_COUNTDOWN_SECONDS) * CIRCLE_CIRCUMFERENCE;
                 circle.style.strokeDashoffset = offset;
             }
@@ -555,7 +603,9 @@
             }
             document.getElementById('floating-modal').classList.add('hidden');
             
-            // Scan-Sperre sofort aufheben (bereit für den nächsten Scan)
+            // Festspeicher-Sperre sofort aufheben (bereit für den nächsten gewollten Scan)
+            localStorage.removeItem('zf_scan_locked_until');
+            localStorage.removeItem('zf_floating_info');
             isScanLocked = false;
 
             if (keepAppOpen) {
@@ -564,12 +614,13 @@
         }
 
         function handleFloatingAutoClose() {
-            // Nach 10 Sekunden schließt das Floating Window
+            // Nach Ablauf der 10 Sekunden schließt das Floating Window
             document.getElementById('floating-modal').classList.add('hidden');
+            localStorage.removeItem('zf_scan_locked_until');
+            localStorage.removeItem('zf_floating_info');
             isScanLocked = false;
 
             // Zeit läuft normal im Hintergrund weiter
-            // Versuche gleichzeitig das Browserfenster automatisch zu schließen
             tryCloseBrowserWindow();
         }
 
@@ -580,7 +631,6 @@
                 console.log("Browser hat window.close() blockiert.");
             }
             
-            // Falls der Browser das Schließen verweigert (Standard bei Links via NFC)
             showMessage("✅ Tätigkeit läuft sicher weiter. Smartphone kann gesperrt werden.", "success");
         }
 
@@ -590,17 +640,17 @@
                 floatingTimerInterval = null;
             }
             document.getElementById('floating-modal').classList.add('hidden');
+            localStorage.removeItem('zf_scan_locked_until');
+            localStorage.removeItem('zf_floating_info');
             isScanLocked = false;
 
             // Logik für den Roten Button: Fehlbuchung verwerfen & Storno
             if (lastActionType === 'start') {
-                // Die gerade gestartete Buchung komplett verwerfen
                 clearInterval(timerInterval);
                 currentTask = null;
                 localStorage.removeItem('zf_active_task');
                 document.getElementById('active-task-section').classList.add('hidden');
             } else if (lastActionType === 'switch') {
-                // Neuer Task verwerfen und vorigen Task reaktivieren
                 clearInterval(timerInterval);
                 if (previousTaskBackup) {
                     currentTask = previousTaskBackup;
@@ -612,16 +662,14 @@
                     localStorage.removeItem('zf_active_task');
                     document.getElementById('active-task-section').classList.add('hidden');
                 }
-                // Letzten Log (der das vorzeitige Beenden geloggt hat) entfernen
                 if (logs.length > 0) {
                     logs.pop();
                     localStorage.setItem('zf_logs', JSON.stringify(logs));
                     updateLogUI();
                 }
             } else if (lastActionType === 'stop') {
-                // Falls ein Stopp versehentlich war: Vorigen Task wiederherstellen
                 if (logs.length > 0) {
-                    const lastLog = logs.pop();
+                    logs.pop();
                     localStorage.setItem('zf_logs', JSON.stringify(logs));
                     updateLogUI();
                     
