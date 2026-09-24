@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=5.0, user-scalable=yes">
-    <title>⏱️ Zeit-Scanner v2.8</title>
+    <title>⏱️ Zeit-Scanner v2.9.1</title>
 
     <!-- Tailwind CSS laden -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -24,17 +24,12 @@
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); }
         }
         .tag { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; margin: 2px; color: white; }
-        .progress-ring-circle {
-            transition: stroke-dashoffset 0.25s linear;
-            transform: rotate(-90deg);
-            transform-origin: 50% 50%;
-        }
     </style>
 </head>
 <body>
     <div class="app-container flex flex-col relative pb-16">
         
-        <!-- Header mit Versionsplakette v2.8 -->
+        <!-- Header mit Versionsplakette v2.9.1 -->
         <header class="bg-slate-800 text-white p-3.5 shadow-md sticky top-0 z-50">
             <div class="flex justify-between items-center">
                 <div class="text-left">
@@ -50,9 +45,9 @@
                     <div class="text-[11px] text-slate-300 font-mono mt-0.5" id="device-id-display">Geräte-ID: Lade...</div>
                 </div>
 
-                <!-- Versions-Badge: v2.8 signalisiert die optimierte Abbruch-Logik -->
-                <span class="text-[10px] bg-amber-500 text-slate-950 font-black px-2.5 py-1 rounded-full border border-amber-300 font-mono shadow-sm">
-                    v2.8 Hardlock
+                <!-- Versions-Badge: v2.9.1 signalisiert das überarbeitete Design der Start- & Stopp-Fenster -->
+                <span class="text-[10px] bg-emerald-400 text-slate-950 font-black px-2.5 py-1 rounded-full border border-emerald-300 font-mono shadow-sm">
+                    v2.9.1 UI
                 </span>
             </div>
         </header>
@@ -109,53 +104,69 @@
         <div id="floating-modal" class="fixed inset-0 bg-slate-950/85 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md transition-all">
             <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-2 border-emerald-500 text-center flex flex-col items-center">
                 
-                <!-- Status & Badge -->
-                <div class="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded-full font-bold mb-3 border border-emerald-300">
-                    <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                <!-- Status & Badge oben -->
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold mb-3 border" id="floating-badge-container">
                     <span id="floating-status-badge">Laufende Tätigkeit</span>
+                    <span id="floating-badge-icon">✅</span>
                 </div>
 
-                <!-- Vollständiger Tätigkeitsname und Text -->
-                <h3 id="floating-task-title" class="font-extrabold text-slate-900 text-lg md:text-xl leading-snug break-words mb-2 px-1">
+                <!-- Zeitanzeige wie aus der Normalansicht (für Start laufend, für Stopp gestoppte Dauer) -->
+                <div id="floating-time-display" class="text-4xl font-mono font-bold text-slate-800 mb-2 border-b border-slate-100 pb-2 w-full">
+                    00:00:00
+                </div>
+
+                <!-- Vollständige Tätigkeitsbeschreibung -->
+                <h3 id="floating-task-title" class="font-black text-slate-900 text-base md:text-lg leading-snug break-words mb-2 px-1">
                     Lade Tätigkeit...
                 </h3>
 
-                <!-- Code ID Kennung -->
-                <div class="text-xs font-mono font-bold text-slate-500 mb-4 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200" id="floating-code-display">
+                <!-- Tags / Pillen wie in der Normalansicht -->
+                <div id="floating-tags" class="flex flex-wrap justify-center gap-1 mb-2"></div>
+
+                <!-- Code ID Kennung (Wird beim Stopp-Fenster wunschgemäß ausgeblendet!) -->
+                <div class="text-xs font-mono font-bold text-slate-500 mb-2 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200" id="floating-code-display">
                     Code: ID-XXXXXX
                 </div>
 
-                <!-- Tickende Sekunden & Prellschutz-Visualisierung -->
-                <div class="relative w-28 h-28 my-1 flex items-center justify-center">
-                    <svg class="w-28 h-28">
-                        <circle class="text-slate-100" stroke-width="6" stroke="currentColor" fill="transparent" r="48" cx="56" cy="56" />
-                        <circle id="countdown-circle" class="text-emerald-500 progress-ring-circle" stroke-width="6" stroke-linecap="round" stroke="currentColor" fill="transparent" r="48" cx="56" cy="56" stroke-dasharray="301.59" stroke-dashoffset="0" />
-                    </svg>
-                    <div class="absolute flex flex-col items-center justify-center">
-                        <span id="floating-countdown-number" class="text-3xl font-mono font-black text-slate-800">10</span>
-                        <span class="text-[9px] uppercase font-bold text-slate-400">Sekunden</span>
+                <!-- 
+                    Halbtransparenter roter Balken direkt im Feld der Scan-Sperre eingeblendet
+                    (Füllt sich über 10 Sekunden von 0% auf 100% ohne störende Ziffern)
+                -->
+                <div class="relative w-full overflow-hidden rounded-xl border border-amber-300 bg-amber-50 py-2.5 px-3 text-center my-2.5 shadow-inner">
+                    <div id="floating-progress-bar" class="absolute top-0 bottom-0 left-0 bg-rose-500/35 transition-all duration-100 ease-linear rounded-l-xl" style="width: 0%;"></div>
+                    <div class="relative z-10 text-xs text-amber-900 font-bold flex items-center justify-center gap-1.5 select-none pointer-events-none">
+                        <span>🔒</span>
+                        <span>Scan-Sperre aktiv (Prellschutz)</span>
                     </div>
                 </div>
 
-                <div class="text-xs text-amber-800 bg-amber-50 border border-amber-300 rounded-xl px-3 py-1.5 my-3 font-semibold flex items-center gap-1.5">
-                    <span>🔒</span>
-                    <span>Scan-Sperre aktiv (Prellschutz)</span>
-                </div>
-
-                <!-- Die beiden Haupt-Aktionsbuttons: Grüner Button & Roter Button -->
-                <div class="w-full space-y-2 mt-2">
-                    <!-- Grüner Button: Normalansicht / In App bleiben -->
-                    <button onclick="dismissFloatingModal(true)" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 text-sm transition-all border border-emerald-500">
-                        <span>🟢</span>
-                        <span>Normalansicht (In App bleiben)</span>
-                    </button>
-
-                    <!-- Roter Button: Abbrechen / Zeit stoppen & keine Buchung erstellen -->
-                    <button onclick="cancelFloatingTask()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 active:scale-95 font-bold py-2.5 px-4 rounded-xl border border-rose-200 flex items-center justify-center gap-2 text-xs transition-all">
-                        <span>🔴</span>
+                <!-- 
+                    1. START-ANSICHT BUTTONS:
+                    Grüner Normalansicht-Button entfernt.
+                    Abbrechen-Button grau gefärbt.
+                -->
+                <div id="floating-start-buttons" class="w-full space-y-2 mt-1">
+                    <button onclick="cancelFloatingTask()" class="w-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold py-2.5 px-4 rounded-xl border border-slate-300 flex items-center justify-center gap-2 text-xs transition-all shadow-sm">
+                        <span>✕</span>
                         <span>Abbrechen (Buchung verwerfen)</span>
                     </button>
                 </div>
+
+                <!-- 
+                    2. STOPP-ANSICHT BUTTONS:
+                    Klick auf "Tätigkeit buchen" führt die Zeitbuchung final aus und wechselt sofort in die Normalansicht im selben Fenster.
+                -->
+                <div id="floating-stop-buttons" class="w-full space-y-2 mt-1 hidden">
+                    <button onclick="confirmAndBookStoppedTask()" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 text-sm transition-all border border-blue-500">
+                        <span>🟢</span>
+                        <span>Tätigkeit buchen (Normalansicht)</span>
+                    </button>
+                    <button onclick="cancelFloatingTask()" class="w-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold py-2.5 px-4 rounded-xl border border-slate-300 flex items-center justify-center gap-2 text-xs transition-all shadow-sm">
+                        <span>✕</span>
+                        <span>Abbrechen (Buchung verwerfen)</span>
+                    </button>
+                </div>
+
             </div>
         </div>
 
@@ -188,12 +199,10 @@
             return false;
         };
 
-        // Schlüssel für die persistenten Speicherriegel
         const LOCK_KEY = 'zf_scan_locked_until';
         const LOCK_INFO_KEY = 'zf_floating_info';
         const LAST_ACTION_KEY = 'zf_last_action_timestamp';
         const COOLDOWN_SECONDS = 10;
-        const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 48; // ca. 301.59
 
         let masterData = []; 
         let logs = []; 
@@ -204,25 +213,18 @@
         const levelColors = ['#3498db', '#e67e22', '#9b59b6', '#16a085'];
 
         // Status-Variablen für das Floating Window
-        let floatingCountdown = 10;
         let floatingTimerInterval = null;
-        let previousTaskBackup = null; 
+        let floatingLiveTimerInterval = null;
         let lastActionType = 'start'; 
-
-        // ==========================================
-        // DREIFACHE MULTI-LAYER PRELLSCHUTZ-PRÜFUNG
-        // ==========================================
+        let pendingStopEntry = null;
 
         function isStorageLockActive() {
             try {
-                // A) LocalStorage Check
                 const lockUntil = parseInt(localStorage.getItem(LOCK_KEY) || '0', 10);
                 if (Date.now() < lockUntil) return true;
 
-                // B) Cookie Check (Synchron und prozessübergreifend)
                 if (document.cookie.includes('zf_hard_lock=1')) return true;
 
-                // C) Last-Action Cooldown Check
                 const lastAction = parseInt(localStorage.getItem(LAST_ACTION_KEY) || '0', 10);
                 if (Date.now() - lastAction < (COOLDOWN_SECONDS * 1000)) return true;
 
@@ -253,7 +255,6 @@
                 if (info) {
                     localStorage.setItem(LOCK_INFO_KEY, JSON.stringify(info));
                 }
-                // Cookie setzen (gilt für 10 Sekunden)
                 document.cookie = `zf_hard_lock=1; max-age=${COOLDOWN_SECONDS}; path=/; SameSite=Lax`;
             } catch(e) {}
             return lockUntil;
@@ -268,9 +269,7 @@
             } catch(e) {}
         }
 
-        // ==========================================
-        // SOFORT-PRÜFUNG BEIM SCRIPT-START (ZERO LATENCY)
-        // ==========================================
+        // Pre-Flight Check für Zero Latency
         (function immediatePreFlightCheck() {
             let incomingId = null;
             try {
@@ -282,13 +281,11 @@
             } catch(e) {}
 
             if (incomingId) {
-                // Prellschutz: Ist irgendein Riegel aktiv?
                 if (isStorageLockActive()) {
                     console.warn("🚫 SOFORT-BLOCK: Scan abgewiesen für ID", incomingId, "Restzeit:", getRemainingLockSeconds());
                     try { window.history.replaceState(null, '', window.location.pathname); } catch(e) { window.location.hash = ''; }
                     window._blockedByAtomicLock = true;
                 } else {
-                    // Lock SOFORT in der ersten Millisekunde reservieren!
                     claimMultiLayerLock({ codeId: incomingId.trim(), actionLabel: 'wird gebucht...' });
                     try { window.history.replaceState(null, '', window.location.pathname); } catch(e) { window.location.hash = ''; }
                     window._atomicScanPendingId = incomingId.trim();
@@ -327,7 +324,6 @@
 
         async function initApp() {
             try {
-                // 1. Eindeutige Geräte-ID laden
                 deviceId = localStorage.getItem('zeiterfassung_device_id') || localStorage.getItem('zf_device_id');
                 if (!deviceId) {
                     deviceId = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
@@ -336,10 +332,8 @@
                 }
                 document.getElementById('device-id-display').textContent = `Geräte-ID: ${deviceId}`;
 
-                // 2. Lokale Offline-Daten vorladen
                 loadOfflineData();
 
-                // 3. Wurde dieser Scan beim sofortigen Script-Start geblockt?
                 if (window._blockedByAtomicLock) {
                     window._blockedByAtomicLock = false;
                     checkAndRestoreLockedModal();
@@ -347,7 +341,6 @@
                     return;
                 }
 
-                // 4. Liegt ein frischer, soeben reservierter Scan vor?
                 const pendingId = window._atomicScanPendingId;
                 if (pendingId) {
                     window._atomicScanPendingId = null;
@@ -360,10 +353,8 @@
                     return;
                 }
 
-                // 5. Automatischer Stammdaten-Abruf im Hintergrund
                 await autoFetchMasterData();
 
-                // 6. Falls noch ein Sperr-Countdown aktiv ist, Modal anzeigen
                 if (isStorageLockActive()) {
                     checkAndRestoreLockedModal();
                 }
@@ -484,6 +475,13 @@
             }
         }
 
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+            const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${h}:${m}:${s}`;
+        }
+
         function processScannedId(scannedText, lockAlreadyClaimed) {
             if (!lockAlreadyClaimed && isStorageLockActive()) {
                 triggerScanBlockedFeedback();
@@ -500,13 +498,10 @@
                 return;
             }
 
-            // ==============================================================
-            // DIE MASTER-REGEL: Mindestlaufzeit-Prüfung gegen Prellen
-            // ==============================================================
+            // Mindestlaufzeit-Prüfung gegen Prellen
             if (currentTask && currentTask.id === scannedId) {
                 const elapsedSec = (Date.now() - new Date(currentTask.startTime).getTime()) / 1000;
                 
-                // Läuft die Tätigkeit weniger als 10 Sekunden? -> STOPP STRIKT VERWEIGERN!
                 if (elapsedSec < COOLDOWN_SECONDS) {
                     console.warn(`🛑 Prellschutz aktiv: Tätigkeit läuft erst seit ${Math.round(elapsedSec)}s. Stopp abgewiesen.`);
                     triggerScanBlockedFeedback();
@@ -519,25 +514,21 @@
                 try { navigator.vibrate([80, 50, 80]); } catch(e) {}
             }
 
-            // Sicherung des vorherigen Zustands
-            previousTaskBackup = currentTask ? JSON.parse(JSON.stringify(currentTask)) : null;
-
             if (currentTask) {
                 if (currentTask.id === scannedId) {
-                    // Fall 1: Selber Code erneut gescannt (nach Ablauf der 10s) -> Regulär stoppen
+                    // Stopp-Fall
                     lastActionType = 'stop';
-                    const stoppedTask = currentTask;
-                    stopAndLogTask();
-                    activateAndShowFloatingModal(stoppedTask.dataObj, stoppedTask.id, 'gestoppt');
+                    prepareStopTaskData(currentTask);
+                    activateAndShowFloatingModal(currentTask.dataObj, currentTask.id, 'gestoppt');
                 } else {
-                    // Fall 2: Anderer Code gescannt -> Wechsel
+                    // Wechsel
                     lastActionType = 'switch';
-                    stopAndLogTask();
+                    executeImmediateStopAndLog();
                     startTask(masterEntry);
                     activateAndShowFloatingModal(masterEntry, masterEntry.id, 'gewechselt');
                 }
             } else {
-                // Fall 3: Keine aktive Tätigkeit -> Neu starten
+                // Neu starten
                 lastActionType = 'start';
                 startTask(masterEntry);
                 activateAndShowFloatingModal(masterEntry, masterEntry.id, 'gestartet');
@@ -550,7 +541,23 @@
             restoreActiveTaskUI();
         }
 
-        function stopAndLogTask() {
+        function prepareStopTaskData(taskToStop) {
+            clearInterval(timerInterval);
+            const endTime = new Date();
+            const durationSec = Math.floor((endTime - new Date(taskToStop.startTime)) / 1000);
+
+            pendingStopEntry = {
+                deviceId: deviceId, 
+                id: taskToStop.id,
+                startDate: new Date(taskToStop.startTime).toLocaleDateString('de-DE'),
+                startTime: new Date(taskToStop.startTime).toLocaleTimeString('de-DE'),
+                endTime: endTime.toLocaleTimeString('de-DE'),
+                durationSec: durationSec, 
+                dataObj: taskToStop.dataObj
+            };
+        }
+
+        function executeImmediateStopAndLog() {
             clearInterval(timerInterval);
             const endTime = new Date();
             const durationSec = Math.floor((endTime - new Date(currentTask.startTime)) / 1000);
@@ -567,9 +574,38 @@
             
             localStorage.setItem('zf_logs', JSON.stringify(logs));
             updateLogUI();
+        }
+
+        // Klick auf „Tätigkeit buchen“ im Stopp-Fenster
+        function confirmAndBookStoppedTask() {
+            if (floatingTimerInterval) {
+                clearInterval(floatingTimerInterval);
+                floatingTimerInterval = null;
+            }
+            if (floatingLiveTimerInterval) {
+                clearInterval(floatingLiveTimerInterval);
+                floatingLiveTimerInterval = null;
+            }
+
+            if (pendingStopEntry) {
+                logs.push(pendingStopEntry);
+                localStorage.setItem('zf_logs', JSON.stringify(logs));
+                updateLogUI();
+                pendingStopEntry = null;
+            }
+
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
             currentTask = null;
             localStorage.removeItem('zf_active_task');
             document.getElementById('active-task-section').classList.add('hidden');
+
+            document.getElementById('floating-modal').classList.add('hidden');
+            releaseMultiLayerLock();
+
+            showMessage("✅ Tätigkeit erfolgreich gebucht.", "success");
         }
 
         function restoreActiveTaskUI() {
@@ -594,15 +630,12 @@
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 const diffSeconds = Math.floor((new Date() - new Date(currentTask.startTime)) / 1000);
-                const h = String(Math.floor(diffSeconds / 3600)).padStart(2, '0');
-                const m = String(Math.floor((diffSeconds % 3600) / 60)).padStart(2, '0');
-                const s = String(diffSeconds % 60).padStart(2, '0');
-                document.getElementById('active-time').textContent = `${h}:${m}:${s}`;
+                document.getElementById('active-time').textContent = formatTime(diffSeconds);
             }, 1000);
         }
 
         function activateAndShowFloatingModal(dataObj, codeId, actionLabel) {
-            claimMultiLayerLock({ dataObj, codeId, actionLabel });
+            claimMultiLayerLock({ dataObj, codeId, actionLabel, pendingStopEntry });
             renderFloatingModalUI(dataObj, codeId, actionLabel);
         }
 
@@ -612,6 +645,7 @@
             if (savedInfo) {
                 try {
                     const info = JSON.parse(savedInfo);
+                    if (info.pendingStopEntry) pendingStopEntry = info.pendingStopEntry;
                     renderFloatingModalUI(info.dataObj, info.codeId, info.actionLabel);
                 } catch(e) {}
             }
@@ -627,52 +661,128 @@
             }
 
             document.getElementById('floating-task-title').textContent = fullText;
-            document.getElementById('floating-code-display').textContent = `Code: ${codeId || 'ID'}`;
 
-            const badge = document.getElementById('floating-status-badge');
-            if (actionLabel === 'gestoppt') {
-                badge.textContent = "🛑 Tätigkeit gestoppt";
-                badge.className = "inline-flex items-center gap-1.5 bg-rose-100 text-rose-800 text-xs px-3 py-1 rounded-full font-bold mb-3 border border-rose-300";
-            } else if (actionLabel === 'gewechselt') {
-                badge.textContent = "🔄 Tätigkeit gewechselt";
-                badge.className = "inline-flex items-center gap-1.5 bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-bold mb-3 border border-blue-300";
-            } else {
-                badge.textContent = "⏱️ Laufende Tätigkeit";
-                badge.className = "inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded-full font-bold mb-3 border border-emerald-300";
+            // Tags in Floating Modal rendern (wie Normalansicht)
+            const tagsBox = document.getElementById('floating-tags');
+            tagsBox.innerHTML = '';
+            if (dataObj) {
+                [dataObj.t1, dataObj.t2, dataObj.t3, dataObj.t4].forEach((levelText, idx) => {
+                    if (levelText) levelText.split(',').forEach(item => {
+                        const trimmed = item.trim();
+                        if (trimmed) {
+                            const span = document.createElement('span');
+                            span.className = 'tag'; 
+                            span.style.backgroundColor = levelColors[idx] || '#7f8c8d';
+                            span.textContent = trimmed; 
+                            tagsBox.appendChild(span);
+                        }
+                    });
+                });
             }
 
-            floatingCountdown = getRemainingLockSeconds();
-            updateFloatingCountdownDisplay();
+            const badge = document.getElementById('floating-status-badge');
+            const icon = document.getElementById('floating-badge-icon');
+            const badgeContainer = document.getElementById('floating-badge-container');
+            const codeDisplay = document.getElementById('floating-code-display');
+            const timeDisplay = document.getElementById('floating-time-display');
+            const startButtons = document.getElementById('floating-start-buttons');
+            const stopButtons = document.getElementById('floating-stop-buttons');
+
+            if (floatingLiveTimerInterval) {
+                clearInterval(floatingLiveTimerInterval);
+                floatingLiveTimerInterval = null;
+            }
+
+            // Umschaltung nach Vorgabe
+            if (actionLabel === 'gestoppt') {
+                // STOPP-FENSTER:
+                // 1. Überschrift "Tätigkeit Buchen" in blauer Schrift
+                badge.textContent = "Tätigkeit Buchen";
+                badge.className = "text-blue-700 font-black text-sm md:text-base";
+                icon.textContent = "🛑";
+                badgeContainer.className = "inline-flex items-center gap-1.5 bg-blue-100 text-blue-800 text-xs px-3.5 py-1.5 rounded-full font-bold mb-3 border border-blue-300";
+
+                // 2. Dafür KEIN Code anzeigen
+                codeDisplay.classList.add('hidden');
+
+                // 3. Gestoppte Dauer anzeigen
+                if (pendingStopEntry) {
+                    timeDisplay.textContent = formatTime(pendingStopEntry.durationSec);
+                }
+
+                startButtons.classList.add('hidden');
+                stopButtons.classList.remove('hidden');
+
+            } else {
+                // START-FENSTER (oder Wechsel):
+                // 1. Überschrift „Laufende Tätigkeit“ daneben ein grüner Haken
+                badge.textContent = "Laufende Tätigkeit";
+                badge.className = "text-emerald-800 font-bold text-xs";
+                icon.textContent = "✅";
+                badgeContainer.className = "inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 text-xs px-3.5 py-1.5 rounded-full font-bold mb-3 border border-emerald-300";
+
+                // 2. Code anzeigen
+                codeDisplay.textContent = `Code: ${codeId || 'ID'}`;
+                codeDisplay.classList.remove('hidden');
+
+                // 3. Zeitanzeige läuft live wie in der Normalansicht mit
+                if (currentTask && currentTask.startTime) {
+                    const updateLiveTime = () => {
+                        const diffSec = Math.floor((Date.now() - new Date(currentTask.startTime).getTime()) / 1000);
+                        timeDisplay.textContent = formatTime(Math.max(0, diffSec));
+                    };
+                    updateLiveTime();
+                    floatingLiveTimerInterval = setInterval(updateLiveTime, 1000);
+                }
+
+                startButtons.classList.remove('hidden');
+                stopButtons.classList.add('hidden');
+            }
+
+            updateFloatingProgressBar();
             const modal = document.getElementById('floating-modal');
             modal.classList.remove('hidden');
 
             if (floatingTimerInterval) clearInterval(floatingTimerInterval);
             floatingTimerInterval = setInterval(() => {
                 const remaining = getRemainingLockSeconds();
-                floatingCountdown = remaining;
-                updateFloatingCountdownDisplay();
+                updateFloatingProgressBar();
 
                 if (remaining <= 0) {
                     clearInterval(floatingTimerInterval);
                     floatingTimerInterval = null;
+                    if (floatingLiveTimerInterval) {
+                        clearInterval(floatingLiveTimerInterval);
+                        floatingLiveTimerInterval = null;
+                    }
                     handleFloatingAutoClose();
                 }
-            }, 250);
+            }, 100);
         }
 
-        function updateFloatingCountdownDisplay() {
-            document.getElementById('floating-countdown-number').textContent = floatingCountdown;
-            const circle = document.getElementById('countdown-circle');
-            if (circle) {
-                const offset = CIRCLE_CIRCUMFERENCE - (floatingCountdown / COOLDOWN_SECONDS) * CIRCLE_CIRCUMFERENCE;
-                circle.style.strokeDashoffset = offset;
-            }
+        // Halbtransparenter anwachsender roter Balken
+        function updateFloatingProgressBar() {
+            const bar = document.getElementById('floating-progress-bar');
+            if (!bar) return;
+
+            const lockUntil = parseInt(localStorage.getItem(LOCK_KEY) || '0', 10);
+            const totalMs = COOLDOWN_SECONDS * 1000;
+            const remainingMs = Math.max(0, lockUntil - Date.now());
+            
+            const elapsedMs = totalMs - remainingMs;
+            const percent = Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
+
+            bar.style.width = percent + '%';
         }
 
         function dismissFloatingModal(keepAppOpen) {
             if (floatingTimerInterval) {
                 clearInterval(floatingTimerInterval);
                 floatingTimerInterval = null;
+            }
+            if (floatingLiveTimerInterval) {
+                clearInterval(floatingLiveTimerInterval);
+                floatingLiveTimerInterval = null;
             }
             document.getElementById('floating-modal').classList.add('hidden');
             releaseMultiLayerLock();
@@ -685,6 +795,20 @@
         function handleFloatingAutoClose() {
             document.getElementById('floating-modal').classList.add('hidden');
             releaseMultiLayerLock();
+
+            if (lastActionType === 'stop' && pendingStopEntry) {
+                logs.push(pendingStopEntry);
+                localStorage.setItem('zf_logs', JSON.stringify(logs));
+                updateLogUI();
+                pendingStopEntry = null;
+
+                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = null;
+                currentTask = null;
+                localStorage.removeItem('zf_active_task');
+                document.getElementById('active-task-section').classList.add('hidden');
+            }
+
             tryCloseBrowserWindow();
         }
 
@@ -692,42 +816,31 @@
             try {
                 window.close();
             } catch(e) {}
-            showMessage("✅ Tätigkeit beendet / gespeichert. Smartphone kann gesperrt werden.", "success");
+            showMessage("✅ Tätigkeit gespeichert. Smartphone kann gesperrt werden.", "success");
         }
 
-        // ==============================================================
-        // KERN-ANPASSUNG: Abbruch-Logik für Start, Stopp und Wechsel
-        // Regel: Stoppe Zeit, schließe Fenster, mach KEINE Buchung!
-        // ==============================================================
         function cancelFloatingTask() {
             if (floatingTimerInterval) {
                 clearInterval(floatingTimerInterval);
                 floatingTimerInterval = null;
             }
+            if (floatingLiveTimerInterval) {
+                clearInterval(floatingLiveTimerInterval);
+                floatingLiveTimerInterval = null;
+            }
             document.getElementById('floating-modal').classList.add('hidden');
             releaseMultiLayerLock();
 
-            // 1. Falls durch 'stop' oder 'switch' bereits ein Log-Eintrag in die Liste geschrieben wurde:
-            // Diesen letzten Eintrag sofort wieder rückstandslos aus dem Speicher entfernen!
-            if (lastActionType === 'stop' || lastActionType === 'switch') {
-                if (logs.length > 0) {
-                    logs.pop();
-                    localStorage.setItem('zf_logs', JSON.stringify(logs));
-                    updateLogUI();
-                }
-            }
+            pendingStopEntry = null;
 
-            // 2. In JEDEM Fall: Laufende Zeit stoppen und KEINE aktive Tätigkeit mehr laufen lassen!
             if (timerInterval) {
                 clearInterval(timerInterval);
                 timerInterval = null;
             }
             currentTask = null;
-            previousTaskBackup = null;
             localStorage.removeItem('zf_active_task');
             document.getElementById('active-task-section').classList.add('hidden');
 
-            // 3. Benutzer-Feedback & Fenster schließen
             showMessage("↩️ Buchung verworfen. Keine Zeit erfasst.", "success");
             tryCloseBrowserWindow();
         }
