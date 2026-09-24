@@ -45,9 +45,9 @@
                     <div class="text-[11px] text-slate-300 font-mono mt-0.5" id="device-id-display">Geräte-ID: Lade...</div>
                 </div>
 
-                <!-- Versions-Badge: v2.9.1 signalisiert das überarbeitete Design der Start- & Stopp-Fenster -->
+                <!-- Versions-Badge: v2.9.2 signalisiert den neuen Stopp-Button anstelle der Überschrift -->
                 <span class="text-[10px] bg-emerald-400 text-slate-950 font-black px-2.5 py-1 rounded-full border border-emerald-300 font-mono shadow-sm">
-                    v2.9.1 UI
+                    v2.9.2 UI
                 </span>
             </div>
         </header>
@@ -104,11 +104,17 @@
         <div id="floating-modal" class="fixed inset-0 bg-slate-950/85 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md transition-all">
             <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-2 border-emerald-500 text-center flex flex-col items-center">
                 
-                <!-- Status & Badge oben -->
+                <!-- Status & Badge oben für Start -->
                 <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold mb-3 border" id="floating-badge-container">
                     <span id="floating-status-badge">Laufende Tätigkeit</span>
                     <span id="floating-badge-icon">✅</span>
                 </div>
+
+                <!-- Neuer Aktions-Button oben für Stopp: "🟢 Tätigkeit buchen" (ersetzt alte Überschrift) -->
+                <button onclick="confirmAndBookStoppedTask()" id="floating-top-book-btn" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 text-sm md:text-base transition-all border border-blue-500 mb-3 hidden">
+                    <span>🟢</span>
+                    <span>Tätigkeit buchen</span>
+                </button>
 
                 <!-- Zeitanzeige wie aus der Normalansicht (für Start laufend, für Stopp gestoppte Dauer) -->
                 <div id="floating-time-display" class="text-4xl font-mono font-bold text-slate-800 mb-2 border-b border-slate-100 pb-2 w-full">
@@ -142,7 +148,6 @@
 
                 <!-- 
                     1. START-ANSICHT BUTTONS:
-                    Grüner Normalansicht-Button entfernt.
                     Abbrechen-Button grau gefärbt.
                 -->
                 <div id="floating-start-buttons" class="w-full space-y-2 mt-1">
@@ -154,13 +159,9 @@
 
                 <!-- 
                     2. STOPP-ANSICHT BUTTONS:
-                    Klick auf "Tätigkeit buchen" führt die Zeitbuchung final aus und wechselt sofort in die Normalansicht im selben Fenster.
+                    Abbrechen-Button (Tätigkeit buchen sitzt nun oben anstelle der alten Überschrift)
                 -->
                 <div id="floating-stop-buttons" class="w-full space-y-2 mt-1 hidden">
-                    <button onclick="confirmAndBookStoppedTask()" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 text-sm transition-all border border-blue-500">
-                        <span>🟢</span>
-                        <span>Tätigkeit buchen (Normalansicht)</span>
-                    </button>
                     <button onclick="cancelFloatingTask()" class="w-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold py-2.5 px-4 rounded-xl border border-slate-300 flex items-center justify-center gap-2 text-xs transition-all shadow-sm">
                         <span>✕</span>
                         <span>Abbrechen (Buchung verwerfen)</span>
@@ -683,6 +684,7 @@
             const badge = document.getElementById('floating-status-badge');
             const icon = document.getElementById('floating-badge-icon');
             const badgeContainer = document.getElementById('floating-badge-container');
+            const topBookBtn = document.getElementById('floating-top-book-btn');
             const codeDisplay = document.getElementById('floating-code-display');
             const timeDisplay = document.getElementById('floating-time-display');
             const startButtons = document.getElementById('floating-start-buttons');
@@ -696,16 +698,16 @@
             // Umschaltung nach Vorgabe
             if (actionLabel === 'gestoppt') {
                 // STOPP-FENSTER:
-                // 1. Überschrift "Tätigkeit Buchen" in blauer Schrift
-                badge.textContent = "Tätigkeit Buchen";
-                badge.className = "text-blue-700 font-black text-sm md:text-base";
-                icon.textContent = "🛑";
-                badgeContainer.className = "inline-flex items-center gap-1.5 bg-blue-100 text-blue-800 text-xs px-3.5 py-1.5 rounded-full font-bold mb-3 border border-blue-300";
+                // 1. Alte Überschrift "Tätigkeit Buchen" mit rotem Punkt entfernen
+                badgeContainer.classList.add('hidden');
 
-                // 2. Dafür KEIN Code anzeigen
+                // 2. An diese Stelle den Button "🟢 Tätigkeit buchen" setzen (ohne "(Normalansicht)")
+                topBookBtn.classList.remove('hidden');
+
+                // 3. Dafür KEIN Code anzeigen
                 codeDisplay.classList.add('hidden');
 
-                // 3. Gestoppte Dauer anzeigen
+                // 4. Gestoppte Dauer anzeigen
                 if (pendingStopEntry) {
                     timeDisplay.textContent = formatTime(pendingStopEntry.durationSec);
                 }
@@ -716,6 +718,8 @@
             } else {
                 // START-FENSTER (oder Wechsel):
                 // 1. Überschrift „Laufende Tätigkeit“ daneben ein grüner Haken
+                topBookBtn.classList.add('hidden');
+                badgeContainer.classList.remove('hidden');
                 badge.textContent = "Laufende Tätigkeit";
                 badge.className = "text-emerald-800 font-bold text-xs";
                 icon.textContent = "✅";
