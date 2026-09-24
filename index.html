@@ -45,9 +45,9 @@
                     <div class="text-[11px] text-slate-300 font-mono mt-0.5" id="device-id-display">Geräte-ID: Lade...</div>
                 </div>
 
-                <!-- Versions-Badge: v2.9.2 signalisiert den neuen Stopp-Button anstelle der Überschrift -->
+                <!-- Versions-Badge: v2.9.3 signalisiert den Multi-Tab-Schließ-Button -->
                 <span class="text-[10px] bg-emerald-400 text-slate-950 font-black px-2.5 py-1 rounded-full border border-emerald-300 font-mono shadow-sm">
-                    v2.9.2 UI
+                    v2.9.3 Multi-Close
                 </span>
             </div>
         </header>
@@ -91,6 +91,12 @@
                     <li class="text-sm text-slate-400 text-center py-4" id="empty-log-msg">Noch keine Zeiten erfasst.</li>
                 </ul>
                 
+                <!-- NEU: Button zum Schließen aller App-Fenster / Tabs -->
+                <button onclick="closeAllAppWindows()" class="w-full bg-slate-700 hover:bg-slate-800 active:scale-[0.99] text-white font-bold py-2.5 rounded-xl shadow flex items-center justify-center gap-1.5 mb-2.5 text-xs border border-slate-600 transition-all" title="Schließt alle offenen Tabs dieser Zeiterfassung">
+                    <span>🗑️</span>
+                    <span>Fenster schließen (Alle Tabs)</span>
+                </button>
+
                 <button onclick="exportLogsCSV()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center mb-2.5 transition-all active:scale-[0.99]">
                     ⬇️ .CSV Exportieren
                 </button>
@@ -203,7 +209,18 @@
         const LOCK_KEY = 'zf_scan_locked_until';
         const LOCK_INFO_KEY = 'zf_floating_info';
         const LAST_ACTION_KEY = 'zf_last_action_timestamp';
+        const CLOSE_TRIGGER_KEY = 'zf_close_all_windows_trigger';
         const COOLDOWN_SECONDS = 10;
+
+        // BroadcastChannel für sofortige tab-übergreifende Schließ-Signale
+        const appBroadcast = ('BroadcastChannel' in window) ? new BroadcastChannel('zf_app_channel') : null;
+        if (appBroadcast) {
+            appBroadcast.onmessage = function(e) {
+                if (e.data === 'CLOSE_ALL_TABS') {
+                    handleRemoteCloseRequest();
+                }
+            };
+        }
 
         let masterData = []; 
         let logs = []; 
@@ -319,6 +336,9 @@
                 }
                 if (e.key === LOCK_KEY && e.newValue) {
                     checkAndRestoreLockedModal();
+                }
+                if (e.key === CLOSE_TRIGGER_KEY && e.newValue) {
+                    handleRemoteCloseRequest();
                 }
             });
         };
@@ -821,6 +841,36 @@
                 window.close();
             } catch(e) {}
             showMessage("✅ Tätigkeit gespeichert. Smartphone kann gesperrt werden.", "success");
+        }
+
+        // Funktion zum Schließen aller offenen Fenster / Tabs dieser App
+        function closeAllAppWindows() {
+            // 1. Signal an alle anderen offenen Tabs via BroadcastChannel senden
+            if (appBroadcast) {
+                try { appBroadcast.postMessage('CLOSE_ALL_TABS'); } catch(e) {}
+            }
+            // 2. Fallback-Signal via localStorage für alle Browser/WebViews
+            try {
+                localStorage.setItem(CLOSE_TRIGGER_KEY, Date.now().toString());
+            } catch(e) {}
+
+            // 3. Eigenes Fenster schließen versuchen
+            try {
+                window.close();
+            } catch(e) {}
+
+            // 4. Falls Browser das direkte Schließen verweigert (Sicherheits-Sandbox)
+            showMessage("Signal an alle Fenster gesendet. Du kannst das Fenster nun schließen oder sperren.", "info");
+        }
+
+        // Wird in Hintergrund-Tabs ausgeführt, wenn das Schließ-Signal eintrifft
+        function handleRemoteCloseRequest() {
+            try {
+                window.close();
+            } catch(e) {}
+            const activeSection = document.getElementById('active-task-section');
+            if (activeSection) activeSection.classList.add('hidden');
+            showMessage("Session beendet. Dieses Fenster kann geschlossen werden.", "info");
         }
 
         function cancelFloatingTask() {
