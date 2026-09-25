@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=5.0, user-scalable=yes">
-    <title>⏱️ Zeit-Scanner v2.9.1</title>
+    <title>⏱️ Zeit-Scanner v2.9.4</title>
 
     <!-- Tailwind CSS laden -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -29,7 +29,7 @@
 <body>
     <div class="app-container flex flex-col relative pb-16">
         
-        <!-- Header mit Versionsplakette v2.9.1 -->
+        <!-- Header mit Versionsplakette v2.9.4 -->
         <header class="bg-slate-800 text-white p-3.5 shadow-md sticky top-0 z-50">
             <div class="flex justify-between items-center">
                 <div class="text-left">
@@ -45,9 +45,9 @@
                     <div class="text-[11px] text-slate-300 font-mono mt-0.5" id="device-id-display">Geräte-ID: Lade...</div>
                 </div>
 
-                <!-- Versions-Badge: v2.9.3 signalisiert den Multi-Tab-Schließ-Button -->
+                <!-- Versions-Badge: v2.9.4 signalisiert die neue Wechsel-Logik -->
                 <span class="text-[10px] bg-emerald-400 text-slate-950 font-black px-2.5 py-1 rounded-full border border-emerald-300 font-mono shadow-sm">
-                    v2.9.3 Multi-Close
+                    v2.9.4 Wechsel
                 </span>
             </div>
         </header>
@@ -91,7 +91,7 @@
                     <li class="text-sm text-slate-400 text-center py-4" id="empty-log-msg">Noch keine Zeiten erfasst.</li>
                 </ul>
                 
-                <!-- NEU: Button zum Schließen aller App-Fenster / Tabs -->
+                <!-- Button zum Schließen aller App-Fenster / Tabs -->
                 <button onclick="closeAllAppWindows()" class="w-full bg-slate-700 hover:bg-slate-800 active:scale-[0.99] text-white font-bold py-2.5 rounded-xl shadow flex items-center justify-center gap-1.5 mb-2.5 text-xs border border-slate-600 transition-all" title="Schließt alle offenen Tabs dieser Zeiterfassung">
                     <span>🗑️</span>
                     <span>Fenster schließen (Alle Tabs)</span>
@@ -110,68 +110,147 @@
         <div id="floating-modal" class="fixed inset-0 bg-slate-950/85 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md transition-all">
             <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-2 border-emerald-500 text-center flex flex-col items-center">
                 
-                <!-- Status & Badge oben für Start -->
-                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold mb-3 border" id="floating-badge-container">
-                    <span id="floating-status-badge">Laufende Tätigkeit</span>
-                    <span id="floating-badge-icon">✅</span>
-                </div>
+                <!-- ========================================== -->
+                <!-- ANSICHT 1: STANDARD (Start, Stopp, F1, F3) -->
+                <!-- ========================================== -->
+                <div id="modal-standard-view" class="w-full flex flex-col items-center">
+                    
+                    <!-- Status & Badge oben für Start (oder F3) -->
+                    <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-bold mb-3 border text-xs" id="floating-badge-container">
+                        <span id="floating-status-badge">Laufende Tätigkeit</span>
+                        <span id="floating-badge-icon">✅</span>
+                    </div>
 
-                <!-- Neuer Aktions-Button oben für Stopp: "🟢 Tätigkeit buchen" (ersetzt alte Überschrift) -->
-                <button onclick="confirmAndBookStoppedTask()" id="floating-top-book-btn" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 text-sm md:text-base transition-all border border-blue-500 mb-3 hidden">
-                    <span>🟢</span>
-                    <span>Tätigkeit buchen</span>
-                </button>
+                    <!-- Aktions-Button oben für Stopp ODER Wechsel F1 ("Tätigkeit 1 buchen?") -->
+                    <button id="floating-top-action-btn" onclick="handleTopActionClick()" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 text-sm md:text-base transition-all border border-blue-500 mb-3 hidden">
+                        <span id="floating-top-action-icon">🟢</span>
+                        <span id="floating-top-action-text">Tätigkeit buchen</span>
+                    </button>
 
-                <!-- Zeitanzeige wie aus der Normalansicht (für Start laufend, für Stopp gestoppte Dauer) -->
-                <div id="floating-time-display" class="text-4xl font-mono font-bold text-slate-800 mb-2 border-b border-slate-100 pb-2 w-full">
-                    00:00:00
-                </div>
+                    <!-- Zeitanzeige (Live-Timer oder gestoppte Dauer) -->
+                    <div id="floating-time-display" class="text-4xl font-mono font-bold text-slate-800 mb-2 border-b border-slate-100 pb-2 w-full">
+                        00:00:00
+                    </div>
 
-                <!-- Vollständige Tätigkeitsbeschreibung -->
-                <h3 id="floating-task-title" class="font-black text-slate-900 text-base md:text-lg leading-snug break-words mb-2 px-1">
-                    Lade Tätigkeit...
-                </h3>
+                    <!-- Vollständige Tätigkeitsbeschreibung -->
+                    <h3 id="floating-task-title" class="font-black text-slate-900 text-base md:text-lg leading-snug break-words mb-2 px-1">
+                        Lade Tätigkeit...
+                    </h3>
 
-                <!-- Tags / Pillen wie in der Normalansicht -->
-                <div id="floating-tags" class="flex flex-wrap justify-center gap-1 mb-2"></div>
+                    <!-- Wechsel-Hinweisbox (erscheint in Fenster 1 des Wechsels) -->
+                    <div id="floating-switch-hint" class="hidden text-xs bg-indigo-50 text-indigo-900 font-semibold p-2.5 rounded-xl border border-indigo-200 mb-2 w-full text-left">
+                        <div class="text-[10px] text-indigo-500 uppercase tracking-wider font-bold mb-0.5">Wechsel zu neuer Tätigkeit:</div>
+                        <div id="floating-next-task-name" class="font-bold text-indigo-950 truncate">Tätigkeit 2</div>
+                    </div>
 
-                <!-- Code ID Kennung (Wird beim Stopp-Fenster wunschgemäß ausgeblendet!) -->
-                <div class="text-xs font-mono font-bold text-slate-500 mb-2 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200" id="floating-code-display">
-                    Code: ID-XXXXXX
-                </div>
+                    <!-- Tags / Pillen wie in der Normalansicht -->
+                    <div id="floating-tags" class="flex flex-wrap justify-center gap-1 mb-2"></div>
 
-                <!-- 
-                    Halbtransparenter roter Balken direkt im Feld der Scan-Sperre eingeblendet
-                    (Füllt sich über 10 Sekunden von 0% auf 100% ohne störende Ziffern)
-                -->
-                <div class="relative w-full overflow-hidden rounded-xl border border-amber-300 bg-amber-50 py-2.5 px-3 text-center my-2.5 shadow-inner">
-                    <div id="floating-progress-bar" class="absolute top-0 bottom-0 left-0 bg-rose-500/35 transition-all duration-100 ease-linear rounded-l-xl" style="width: 0%;"></div>
-                    <div class="relative z-10 text-xs text-amber-900 font-bold flex items-center justify-center gap-1.5 select-none pointer-events-none">
-                        <span>🔒</span>
-                        <span>Scan-Sperre aktiv (Prellschutz)</span>
+                    <!-- Code ID Kennung (Wird bei Stopp ausgeblendet) -->
+                    <div class="text-xs font-mono font-bold text-slate-500 mb-2 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200" id="floating-code-display">
+                        Code: ID-XXXXXX
+                    </div>
+
+                    <!-- 
+                        NEU: BLAUER PAUSE-BUTTON AN DER ALTEN BALKEN-STELLE!
+                        (Vorerst ohne Funktion als Platzhalter)
+                    -->
+                    <button id="floating-pause-btn" type="button" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 text-xs md:text-sm transition-all my-1.5 border border-blue-500">
+                        <span>⏸️</span>
+                        <span>Pause</span>
+                    </button>
+
+                    <!-- 
+                        ABBRECHEN-BUTTON (GRAU GEFÄRBT)
+                    -->
+                    <button id="floating-cancel-btn" onclick="handleFloatingCancel()" class="w-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold py-2.5 px-4 rounded-xl border border-slate-300 flex items-center justify-center gap-2 text-xs transition-all shadow-sm my-1">
+                        <span id="floating-cancel-icon">✕</span>
+                        <span id="floating-cancel-text">Abbrechen (Buchung verwerfen)</span>
+                    </button>
+
+                    <!-- 
+                        NEU: ROTER LAUFBALKEN GANZ UNTEN UNTER DEM ABBRECHEN-BUTTON!
+                        (Füllt sich über die Dauer von COOLDOWN_SECONDS von 0 % auf 100 %)
+                    -->
+                    <div id="floating-progress-container" class="relative w-full overflow-hidden rounded-xl border border-amber-300 bg-amber-50 py-2.5 px-3 text-center mt-2.5 shadow-inner">
+                        <div id="floating-progress-bar" class="absolute top-0 bottom-0 left-0 bg-rose-500/35 transition-all duration-100 ease-linear rounded-l-xl" style="width: 0%;"></div>
+                        <div class="relative z-10 text-xs text-amber-900 font-bold flex items-center justify-center gap-1.5 select-none pointer-events-none">
+                            <span>🔒</span>
+                            <span id="floating-lock-label">Scan-Sperre aktiv (Prellschutz)</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 
-                    1. START-ANSICHT BUTTONS:
-                    Abbrechen-Button grau gefärbt.
-                -->
-                <div id="floating-start-buttons" class="w-full space-y-2 mt-1">
-                    <button onclick="cancelFloatingTask()" class="w-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold py-2.5 px-4 rounded-xl border border-slate-300 flex items-center justify-center gap-2 text-xs transition-all shadow-sm">
-                        <span>✕</span>
-                        <span>Abbrechen (Buchung verwerfen)</span>
+                <!-- ======================================================== -->
+                <!-- ANSICHT 2: FENSTER 2 BEI WECHSEL (Bestätigungsmeldung)    -->
+                <!-- ======================================================== -->
+                <div id="modal-switch-confirm-view" class="w-full flex flex-col items-center hidden py-1">
+                    <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mb-3 shadow-inner">
+                        ✓
+                    </div>
+                    <h3 class="text-base md:text-lg font-black text-slate-900 mb-1 leading-snug">
+                        Tätigkeit 1 gebucht,<br>Tätigkeit 2 gestartet!
+                    </h3>
+                    <p class="text-xs text-slate-500 mb-3 px-1">
+                        Die vorherige Zeit wurde verbucht. Die neue Arbeitszeit läuft.
+                    </p>
+
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 w-full text-left mb-3.5 text-xs space-y-1.5 shadow-sm">
+                        <div class="text-slate-600">
+                            <span class="text-slate-400">Gebucht:</span> <strong id="confirm-task1-name" class="text-slate-800"></strong>
+                        </div>
+                        <div class="text-slate-600">
+                            <span class="text-slate-400">Neu aktiv:</span> <strong id="confirm-task2-name" class="text-emerald-700"></strong>
+                        </div>
+                    </div>
+
+                    <!-- Sofort-Weiter-Button (falls Mitarbeiter nicht die vollen 10s warten will) -->
+                    <button onclick="transitionToSwitchWindow3()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3 px-4 rounded-xl shadow text-xs transition-all mb-2.5 flex items-center justify-center gap-1.5">
+                        <span>Weiter zu Tätigkeit 2</span>
+                        <span>▶️</span>
                     </button>
+
+                    <!-- Fortschrittsbalken für die 10 Sekunden Anzeigezeit -->
+                    <div class="relative w-full overflow-hidden rounded-xl border border-emerald-300 bg-emerald-50 py-2.5 px-3 text-center shadow-inner">
+                        <div id="confirm-progress-bar" class="absolute top-0 bottom-0 left-0 bg-emerald-500/35 transition-all duration-100 ease-linear rounded-l-xl" style="width: 0%;"></div>
+                        <div class="relative z-10 text-[11px] text-emerald-900 font-bold flex items-center justify-center gap-1.5 select-none pointer-events-none">
+                            <span>⏱️</span>
+                            <span id="confirm-timer-label">Öffnet Start-Fenster in 10s...</span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- 
-                    2. STOPP-ANSICHT BUTTONS:
-                    Abbrechen-Button (Tätigkeit buchen sitzt nun oben anstelle der alten Überschrift)
-                -->
-                <div id="floating-stop-buttons" class="w-full space-y-2 mt-1 hidden">
-                    <button onclick="cancelFloatingTask()" class="w-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold py-2.5 px-4 rounded-xl border border-slate-300 flex items-center justify-center gap-2 text-xs transition-all shadow-sm">
-                        <span>✕</span>
-                        <span>Abbrechen (Buchung verwerfen)</span>
-                    </button>
+                <!-- ======================================================== -->
+                <!-- ANSICHT 3: TIMEOUT-FENSTER BEI WECHSEL (Pfad B: 2 Buttons) -->
+                <!-- ======================================================== -->
+                <div id="modal-switch-timeout-view" class="w-full flex flex-col items-center hidden py-1">
+                    <div class="inline-flex items-center gap-1.5 bg-blue-100 text-blue-800 text-xs px-3.5 py-1.5 rounded-full font-bold mb-3 border border-blue-300">
+                        <span>ℹ️ Tätigkeit 1 automatisch gebucht</span>
+                    </div>
+
+                    <!-- Live-Timer für Tätigkeit 2 -->
+                    <div id="timeout-task2-time" class="text-4xl font-mono font-bold text-slate-800 mb-2 border-b border-slate-100 pb-2 w-full">
+                        00:00:00
+                    </div>
+
+                    <h3 id="timeout-task2-title" class="font-black text-slate-900 text-base leading-snug break-words mb-2 px-1">
+                        Tätigkeit 2
+                    </h3>
+                    <p class="text-xs text-slate-500 mb-4 px-1">
+                        Tätigkeit 1 wurde gespeichert. Die Zeit für Tätigkeit 2 läuft im Hintergrund ab Scan weiter.
+                    </p>
+
+                    <!-- Die geforderten 2 Buttons: Pause & Tätigkeit 2 aufnehmen -->
+                    <div class="w-full space-y-2 mb-1">
+                        <button type="button" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 text-xs md:text-sm transition-all border border-blue-500">
+                            <span>⏸️</span>
+                            <span>Pause</span>
+                        </button>
+                        <button onclick="resumeTask2StartWindow()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-sm transition-all border border-emerald-500">
+                            <span>▶️</span>
+                            <span>Tätigkeit 2 aufnehmen</span>
+                        </button>
+                    </div>
                 </div>
 
             </div>
@@ -210,7 +289,7 @@
         const LOCK_INFO_KEY = 'zf_floating_info';
         const LAST_ACTION_KEY = 'zf_last_action_timestamp';
         const CLOSE_TRIGGER_KEY = 'zf_close_all_windows_trigger';
-        const COOLDOWN_SECONDS = 20;
+        const COOLDOWN_SECONDS = 10;
 
         // BroadcastChannel für sofortige tab-übergreifende Schließ-Signale
         const appBroadcast = ('BroadcastChannel' in window) ? new BroadcastChannel('zf_app_channel') : null;
@@ -230,11 +309,16 @@
         let timerInterval = null;
         const levelColors = ['#3498db', '#e67e22', '#9b59b6', '#16a085'];
 
-        // Status-Variablen für das Floating Window
+        // Status-Variablen für das Floating Modal
         let floatingTimerInterval = null;
         let floatingLiveTimerInterval = null;
-        let lastActionType = 'start'; 
+        let switchF2TimerInterval = null;
+        let timeoutLiveTimerInterval = null;
+
+        // Aktueller Zustand des Modals: 'start', 'stop', 'switch_f1', 'switch_f2', 'switch_f3'
+        let currentModalMode = 'start'; 
         let pendingStopEntry = null;
+        let pendingSwitchTask2 = null;
 
         function isStorageLockActive() {
             try {
@@ -332,10 +416,7 @@
                     updateLogUI();
                 }
                 if (e.key === LOCK_KEY && !e.newValue) {
-                    dismissFloatingModal(false);
-                }
-                if (e.key === LOCK_KEY && e.newValue) {
-                    checkAndRestoreLockedModal();
+                    dismissFloatingModal();
                 }
                 if (e.key === CLOSE_TRIGGER_KEY && e.newValue) {
                     handleRemoteCloseRequest();
@@ -357,7 +438,6 @@
 
                 if (window._blockedByAtomicLock) {
                     window._blockedByAtomicLock = false;
-                    checkAndRestoreLockedModal();
                     triggerScanBlockedFeedback();
                     return;
                 }
@@ -375,10 +455,6 @@
                 }
 
                 await autoFetchMasterData();
-
-                if (isStorageLockActive()) {
-                    checkAndRestoreLockedModal();
-                }
 
             } catch (error) {
                 showMessage("Speicherfehler! Bitte normalen Browser-Modus nutzen.", "error");
@@ -503,10 +579,44 @@
             return `${h}:${m}:${s}`;
         }
 
+        function getFullTaskText(dataObj, fallbackId) {
+            if (dataObj) {
+                const parts = [dataObj.t1, dataObj.t2, dataObj.t3, dataObj.t4].filter(t => t && t.trim() !== '');
+                if (parts.length > 0) return parts.join(' • ');
+            }
+            return fallbackId || "Laufende Tätigkeit";
+        }
+
+        function renderTagsInto(container, dataObj) {
+            container.innerHTML = '';
+            if (!dataObj) return;
+            [dataObj.t1, dataObj.t2, dataObj.t3, dataObj.t4].forEach((levelText, idx) => {
+                if (levelText) levelText.split(',').forEach(item => {
+                    const trimmed = item.trim();
+                    if (trimmed) {
+                        const span = document.createElement('span');
+                        span.className = 'tag'; 
+                        span.style.backgroundColor = levelColors[idx] || '#7f8c8d';
+                        span.textContent = trimmed; 
+                        container.appendChild(span);
+                    }
+                });
+            });
+        }
+
+        function clearAllModalIntervals() {
+            if (floatingTimerInterval) { clearInterval(floatingTimerInterval); floatingTimerInterval = null; }
+            if (floatingLiveTimerInterval) { clearInterval(floatingLiveTimerInterval); floatingLiveTimerInterval = null; }
+            if (switchF2TimerInterval) { clearInterval(switchF2TimerInterval); switchF2TimerInterval = null; }
+            if (timeoutLiveTimerInterval) { clearInterval(timeoutLiveTimerInterval); timeoutLiveTimerInterval = null; }
+        }
+
+        // ==========================================================
+        // HAUPT-VERARBEITUNG VON SCANS
+        // ==========================================================
         function processScannedId(scannedText, lockAlreadyClaimed) {
             if (!lockAlreadyClaimed && isStorageLockActive()) {
                 triggerScanBlockedFeedback();
-                checkAndRestoreLockedModal();
                 return;
             }
 
@@ -519,14 +629,14 @@
                 return;
             }
 
-            // Mindestlaufzeit-Prüfung gegen Prellen
+            // Mindestlaufzeit-Prüfung gegen Prellen bei gleichem Code
             if (currentTask && currentTask.id === scannedId) {
                 const elapsedSec = (Date.now() - new Date(currentTask.startTime).getTime()) / 1000;
                 
                 if (elapsedSec < COOLDOWN_SECONDS) {
                     console.warn(`🛑 Prellschutz aktiv: Tätigkeit läuft erst seit ${Math.round(elapsedSec)}s. Stopp abgewiesen.`);
                     triggerScanBlockedFeedback();
-                    activateAndShowFloatingModal(currentTask.dataObj, currentTask.id, 'gestartet');
+                    openStartModal(currentTask.dataObj, currentTask.id, 'start');
                     return;
                 }
             }
@@ -537,22 +647,20 @@
 
             if (currentTask) {
                 if (currentTask.id === scannedId) {
-                    // Stopp-Fall
-                    lastActionType = 'stop';
+                    // FALL A: Selber Code nochmal -> Reguläres Stopp-Fenster
+                    currentModalMode = 'stop';
                     prepareStopTaskData(currentTask);
-                    activateAndShowFloatingModal(currentTask.dataObj, currentTask.id, 'gestoppt');
+                    openStopModal(currentTask.dataObj, currentTask.id);
                 } else {
-                    // Wechsel
-                    lastActionType = 'switch';
-                    executeImmediateStopAndLog();
-                    startTask(masterEntry);
-                    activateAndShowFloatingModal(masterEntry, masterEntry.id, 'gewechselt');
+                    // FALL B: Neuer Code gescannt -> TÄTIGKEITSWECHSEL (Fenster 1)
+                    currentModalMode = 'switch_f1';
+                    setupSwitchWindow1(masterEntry);
                 }
             } else {
-                // Neu starten
-                lastActionType = 'start';
+                // FALL C: Keine aktive Tätigkeit -> Neu starten
+                currentModalMode = 'start';
                 startTask(masterEntry);
-                activateAndShowFloatingModal(masterEntry, masterEntry.id, 'gestartet');
+                openStartModal(masterEntry, masterEntry.id, 'start');
             }
         }
 
@@ -578,35 +686,306 @@
             };
         }
 
-        function executeImmediateStopAndLog() {
-            clearInterval(timerInterval);
-            const endTime = new Date();
-            const durationSec = Math.floor((endTime - new Date(currentTask.startTime)) / 1000);
-            
-            logs.push({
-                deviceId: deviceId, 
+        // ==========================================================
+        // WECHSEL-LOGIK: FENSTER 1, FENSTER 2, FENSTER 3
+        // ==========================================================
+
+        // FENSTER 1 (Wechsel): Fragt ob Tätigkeit 1 gebucht werden soll
+        function setupSwitchWindow1(newTaskMasterEntry) {
+            clearAllModalIntervals();
+            claimMultiLayerLock({ switchFrom: currentTask.id, switchTo: newTaskMasterEntry.id });
+
+            const scanTime = new Date();
+            const durationTask1 = Math.floor((scanTime - new Date(currentTask.startTime)) / 1000);
+
+            // Vorbereitung: Daten für die spätere Buchung von Tätigkeit 1
+            pendingStopEntry = {
+                deviceId: deviceId,
                 id: currentTask.id,
                 startDate: new Date(currentTask.startTime).toLocaleDateString('de-DE'),
                 startTime: new Date(currentTask.startTime).toLocaleTimeString('de-DE'),
-                endTime: endTime.toLocaleTimeString('de-DE'),
-                durationSec: durationSec, 
+                endTime: scanTime.toLocaleTimeString('de-DE'),
+                durationSec: durationTask1,
                 dataObj: currentTask.dataObj
-            });
-            
-            localStorage.setItem('zf_logs', JSON.stringify(logs));
-            updateLogUI();
+            };
+
+            // Zeit für Tätigkeit 2 beginnt bereits ab dem Scan-Zeitstempel!
+            pendingSwitchTask2 = {
+                id: newTaskMasterEntry.id,
+                startTime: scanTime,
+                dataObj: newTaskMasterEntry
+            };
+
+            // UI für Fenster 1 herrichten
+            document.getElementById('modal-standard-view').classList.remove('hidden');
+            document.getElementById('modal-switch-confirm-view').classList.add('hidden');
+            document.getElementById('modal-switch-timeout-view').classList.add('hidden');
+
+            document.getElementById('floating-badge-container').classList.add('hidden');
+
+            // Button oben: "🟢 Tätigkeit 1 buchen"
+            const topBtn = document.getElementById('floating-top-action-btn');
+            topBtn.classList.remove('hidden');
+            document.getElementById('floating-top-action-icon').textContent = '🟢';
+            document.getElementById('floating-top-action-text').textContent = 'Tätigkeit 1 buchen';
+
+            // Zeitanzeige: Dauer von Tätigkeit 1 bis jetzt
+            document.getElementById('floating-time-display').textContent = formatTime(durationTask1);
+
+            // Name von Tätigkeit 1
+            document.getElementById('floating-task-title').textContent = getFullTaskText(currentTask.dataObj, currentTask.id);
+            renderTagsInto(document.getElementById('floating-tags'), currentTask.dataObj);
+
+            // Hinweisbox auf neue Tätigkeit 2
+            const switchHint = document.getElementById('floating-switch-hint');
+            switchHint.classList.remove('hidden');
+            document.getElementById('floating-next-task-name').textContent = getFullTaskText(newTaskMasterEntry, newTaskMasterEntry.id);
+
+            // Kein Code im Zwischenfenster
+            document.getElementById('floating-code-display').classList.add('hidden');
+
+            // Abbrechen-Button für Fenster 1: "✕ Abbrechen (Wechsel stornieren)"
+            document.getElementById('floating-cancel-text').textContent = 'Abbrechen (Wechsel stornieren)';
+
+            document.getElementById('floating-modal').classList.remove('hidden');
+            updateModalProgressBar();
+
+            // 10-Sekunden Countdown für Fenster 1
+            floatingTimerInterval = setInterval(() => {
+                const remaining = getRemainingLockSeconds();
+                updateModalProgressBar();
+
+                if (remaining <= 0) {
+                    clearAllModalIntervals();
+                    // TIMEOUT BEI FENSTER 1 (PFAD B):
+                    handleSwitchWindow1Timeout();
+                }
+            }, 100);
         }
 
-        // Klick auf „Tätigkeit buchen“ im Stopp-Fenster
+        // Klick auf den oberen Button ("🟢 Tätigkeit buchen")
+        function handleTopActionClick() {
+            if (currentModalMode === 'switch_f1') {
+                // PFAD A BEI WECHSEL: Tätigkeit 1 buchen -> Fenster 2 öffnen
+                confirmSwitchAndOpenWindow2();
+            } else {
+                // REGULÄRES STOPP-FENSTER
+                confirmAndBookStoppedTask();
+            }
+        }
+
+        // PFAD A: Tätigkeitswechsel bestätigt -> FENSTER 2 (Bestätigung ca. 10s)
+        function confirmSwitchAndOpenWindow2() {
+            clearAllModalIntervals();
+
+            // 1. Tätigkeit 1 fest verbuchen
+            if (pendingStopEntry) {
+                logs.push(pendingStopEntry);
+                localStorage.setItem('zf_logs', JSON.stringify(logs));
+                updateLogUI();
+            }
+
+            // 2. Tätigkeit 2 wird offiziell aktiv (läuft ab Scan-Zeitstempel weiter)
+            currentTask = pendingSwitchTask2;
+            localStorage.setItem('zf_active_task', JSON.stringify(currentTask));
+            restoreActiveTaskUI();
+
+            const task1Title = getFullTaskText(pendingStopEntry.dataObj, pendingStopEntry.id);
+            const task2Title = getFullTaskText(currentTask.dataObj, currentTask.id);
+
+            pendingStopEntry = null;
+            pendingSwitchTask2 = null;
+
+            // 3. FENSTER 2 ANZEIGEN (ca. 10 Sekunden)
+            currentModalMode = 'switch_f2';
+            document.getElementById('modal-standard-view').classList.add('hidden');
+            document.getElementById('modal-switch-confirm-view').classList.remove('hidden');
+            document.getElementById('modal-switch-timeout-view').classList.add('hidden');
+
+            document.getElementById('confirm-task1-name').textContent = task1Title;
+            document.getElementById('confirm-task2-name').textContent = task2Title;
+
+            const confirmStartTime = Date.now();
+            const durationMs = 10000; // Exakt 10 Sekunden Anzeigezeit für Fenster 2
+
+            const confirmProgressBar = document.getElementById('confirm-progress-bar');
+            const confirmLabel = document.getElementById('confirm-timer-label');
+
+            switchF2TimerInterval = setInterval(() => {
+                const elapsed = Date.now() - confirmStartTime;
+                const remainingSec = Math.max(0, Math.ceil((durationMs - elapsed) / 1000));
+                const percent = Math.min(100, (elapsed / durationMs) * 100);
+
+                confirmProgressBar.style.width = percent + '%';
+                confirmLabel.textContent = `Öffnet Start-Fenster in ${remainingSec}s...`;
+
+                if (elapsed >= durationMs) {
+                    clearAllModalIntervals();
+                    transitionToSwitchWindow3();
+                }
+            }, 100);
+        }
+
+        // FENSTER 3: Reguläres Start-Fenster für Tätigkeit 2
+        function transitionToSwitchWindow3() {
+            clearAllModalIntervals();
+            currentModalMode = 'switch_f3';
+            openStartModal(currentTask.dataObj, currentTask.id, 'switch_f3');
+        }
+
+        // PFAD B: Timeout in Fenster 1 (Kein Klick innerhalb von 10 Sekunden)
+        function handleSwitchWindow1Timeout() {
+            clearAllModalIntervals();
+
+            // Tätigkeit 1 wird trotzdem automatisch gebucht
+            if (pendingStopEntry) {
+                logs.push(pendingStopEntry);
+                localStorage.setItem('zf_logs', JSON.stringify(logs));
+                updateLogUI();
+                pendingStopEntry = null;
+            }
+
+            // Tätigkeit 2 läuft im Hintergrund ab Scan weiter
+            currentTask = pendingSwitchTask2;
+            localStorage.setItem('zf_active_task', JSON.stringify(currentTask));
+            restoreActiveTaskUI();
+            pendingSwitchTask2 = null;
+
+            // Timeout-Fenster mit 2 Buttons anzeigen: [Pause] und [Tätigkeit 2 aufnehmen]
+            currentModalMode = 'switch_timeout';
+            document.getElementById('modal-standard-view').classList.add('hidden');
+            document.getElementById('modal-switch-confirm-view').classList.add('hidden');
+            document.getElementById('modal-switch-timeout-view').classList.remove('hidden');
+
+            document.getElementById('timeout-task2-title').textContent = getFullTaskText(currentTask.dataObj, currentTask.id);
+
+            const updateTimeoutLiveTime = () => {
+                const diffSec = Math.floor((Date.now() - new Date(currentTask.startTime).getTime()) / 1000);
+                document.getElementById('timeout-task2-time').textContent = formatTime(Math.max(0, diffSec));
+            };
+            updateTimeoutLiveTime();
+            timeoutLiveTimerInterval = setInterval(updateTimeoutLiveTime, 1000);
+
+            releaseMultiLayerLock();
+            showMessage("✅ Tätigkeit 1 automatisch gebucht. Tätigkeit 2 läuft.", "info");
+        }
+
+        // Klick auf "▶️ Tätigkeit 2 aufnehmen" im Timeout-Fenster
+        function resumeTask2StartWindow() {
+            clearAllModalIntervals();
+            transitionToSwitchWindow3();
+        }
+
+        // ==========================================================
+        // STANDARD-MODAL: START & STOPP & FENSTER 3
+        // ==========================================================
+        function openStartModal(dataObj, codeId, modeType) {
+            clearAllModalIntervals();
+            currentModalMode = modeType || 'start';
+            claimMultiLayerLock({ dataObj, codeId, mode: currentModalMode });
+
+            document.getElementById('modal-standard-view').classList.remove('hidden');
+            document.getElementById('modal-switch-confirm-view').classList.add('hidden');
+            document.getElementById('modal-switch-timeout-view').classList.add('hidden');
+
+            // START-FENSTER:
+            // 1. Überschrift „Laufende Tätigkeit“ mit grünem Haken
+            document.getElementById('floating-top-action-btn').classList.add('hidden');
+            const badgeContainer = document.getElementById('floating-badge-container');
+            badgeContainer.classList.remove('hidden');
+            document.getElementById('floating-status-badge').textContent = "Laufende Tätigkeit";
+            document.getElementById('floating-badge-icon').textContent = "✅";
+            badgeContainer.className = "inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 text-xs px-3.5 py-1.5 rounded-full font-bold mb-3 border border-emerald-300";
+
+            // 2. Zeit läuft live mit
+            const timeDisplay = document.getElementById('floating-time-display');
+            if (currentTask && currentTask.startTime) {
+                const updateLiveTime = () => {
+                    const diffSec = Math.floor((Date.now() - new Date(currentTask.startTime).getTime()) / 1000);
+                    timeDisplay.textContent = formatTime(Math.max(0, diffSec));
+                };
+                updateLiveTime();
+                floatingLiveTimerInterval = setInterval(updateLiveTime, 1000);
+            }
+
+            // 3. Titel, Tags, Code
+            document.getElementById('floating-task-title').textContent = getFullTaskText(dataObj, codeId);
+            document.getElementById('floating-switch-hint').classList.add('hidden');
+            renderTagsInto(document.getElementById('floating-tags'), dataObj);
+
+            const codeDisplay = document.getElementById('floating-code-display');
+            codeDisplay.textContent = `Code: ${codeId || 'ID'}`;
+            codeDisplay.classList.remove('hidden');
+
+            // Abbrechen-Button Text
+            document.getElementById('floating-cancel-text').textContent = 'Abbrechen (Buchung verwerfen)';
+
+            updateModalProgressBar();
+            document.getElementById('floating-modal').classList.remove('hidden');
+
+            floatingTimerInterval = setInterval(() => {
+                const remaining = getRemainingLockSeconds();
+                updateModalProgressBar();
+
+                if (remaining <= 0) {
+                    clearAllModalIntervals();
+                    dismissFloatingModal();
+                    tryCloseBrowserWindow();
+                }
+            }, 100);
+        }
+
+        function openStopModal(dataObj, codeId) {
+            clearAllModalIntervals();
+            currentModalMode = 'stop';
+            claimMultiLayerLock({ dataObj, codeId, mode: 'stop', pendingStopEntry });
+
+            document.getElementById('modal-standard-view').classList.remove('hidden');
+            document.getElementById('modal-switch-confirm-view').classList.add('hidden');
+            document.getElementById('modal-switch-timeout-view').classList.add('hidden');
+
+            // STOPP-FENSTER:
+            // 1. Badge oben ausblenden
+            document.getElementById('floating-badge-container').classList.add('hidden');
+
+            // 2. Button "🟢 Tätigkeit buchen" ganz oben platzieren
+            const topBtn = document.getElementById('floating-top-action-btn');
+            topBtn.classList.remove('hidden');
+            document.getElementById('floating-top-action-icon').textContent = '🟢';
+            document.getElementById('floating-top-action-text').textContent = 'Tätigkeit buchen';
+
+            // 3. Gestoppte Dauer anzeigen
+            if (pendingStopEntry) {
+                document.getElementById('floating-time-display').textContent = formatTime(pendingStopEntry.durationSec);
+            }
+
+            // 4. Titel & Tags, KEIN Code
+            document.getElementById('floating-task-title').textContent = getFullTaskText(dataObj, codeId);
+            document.getElementById('floating-switch-hint').classList.add('hidden');
+            renderTagsInto(document.getElementById('floating-tags'), dataObj);
+            document.getElementById('floating-code-display').classList.add('hidden');
+
+            // 5. Abbrechen-Button
+            document.getElementById('floating-cancel-text').textContent = 'Abbrechen (Buchung verwerfen)';
+
+            updateModalProgressBar();
+            document.getElementById('floating-modal').classList.remove('hidden');
+
+            floatingTimerInterval = setInterval(() => {
+                const remaining = getRemainingLockSeconds();
+                updateModalProgressBar();
+
+                if (remaining <= 0) {
+                    clearAllModalIntervals();
+                    confirmAndBookStoppedTask();
+                    tryCloseBrowserWindow();
+                }
+            }, 100);
+        }
+
+        // Klick auf "🟢 Tätigkeit buchen" im regulären Stopp-Fenster
         function confirmAndBookStoppedTask() {
-            if (floatingTimerInterval) {
-                clearInterval(floatingTimerInterval);
-                floatingTimerInterval = null;
-            }
-            if (floatingLiveTimerInterval) {
-                clearInterval(floatingLiveTimerInterval);
-                floatingLiveTimerInterval = null;
-            }
+            clearAllModalIntervals();
 
             if (pendingStopEntry) {
                 logs.push(pendingStopEntry);
@@ -615,177 +994,49 @@
                 pendingStopEntry = null;
             }
 
-            if (timerInterval) {
-                clearInterval(timerInterval);
-                timerInterval = null;
-            }
+            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
             currentTask = null;
             localStorage.removeItem('zf_active_task');
             document.getElementById('active-task-section').classList.add('hidden');
 
-            document.getElementById('floating-modal').classList.add('hidden');
-            releaseMultiLayerLock();
-
+            dismissFloatingModal();
             showMessage("✅ Tätigkeit erfolgreich gebucht.", "success");
         }
 
-        function restoreActiveTaskUI() {
-            document.getElementById('active-task-section').classList.remove('hidden');
-            document.getElementById('active-id').textContent = currentTask.id;
-            
-            const tagsContainer = document.getElementById('active-tags');
-            tagsContainer.innerHTML = '';
-            [currentTask.dataObj.t1, currentTask.dataObj.t2, currentTask.dataObj.t3, currentTask.dataObj.t4].forEach((levelText, idx) => {
-                if (levelText) levelText.split(',').forEach(item => {
-                    const trimmed = item.trim();
-                    if (trimmed) {
-                        const span = document.createElement('span');
-                        span.className = 'tag'; 
-                        span.style.backgroundColor = levelColors[idx] || '#7f8c8d';
-                        span.textContent = trimmed; 
-                        tagsContainer.appendChild(span);
-                    }
-                });
-            });
+        // ==========================================================
+        // ABBRECHEN-LOGIK (Zentral für alle Fenster)
+        // ==========================================================
+        function handleFloatingCancel() {
+            clearAllModalIntervals();
 
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                const diffSeconds = Math.floor((new Date() - new Date(currentTask.startTime)) / 1000);
-                document.getElementById('active-time').textContent = formatTime(diffSeconds);
-            }, 1000);
+            if (currentModalMode === 'switch_f1') {
+                // ABBRECHEN IN FENSTER 1: WECHSEL WIRD STORNIERT!
+                // Tätigkeit 1 läuft unberührt weiter!
+                pendingSwitchTask2 = null;
+                pendingStopEntry = null;
+
+                dismissFloatingModal();
+                showMessage("↩️ Wechsel storniert. Vorherige Tätigkeit läuft weiter.", "info");
+                return;
+            }
+
+            // REGULÄRER ABBRUCH (Start, Stopp, Fenster 3):
+            // Verwirft die aktuelle Buchung rückstandslos
+            pendingStopEntry = null;
+            pendingSwitchTask2 = null;
+
+            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+            currentTask = null;
+            localStorage.removeItem('zf_active_task');
+            document.getElementById('active-task-section').classList.add('hidden');
+
+            dismissFloatingModal();
+            showMessage("↩️ Buchung verworfen. Keine Zeit erfasst.", "success");
+            tryCloseBrowserWindow();
         }
 
-        function activateAndShowFloatingModal(dataObj, codeId, actionLabel) {
-            claimMultiLayerLock({ dataObj, codeId, actionLabel, pendingStopEntry });
-            renderFloatingModalUI(dataObj, codeId, actionLabel);
-        }
-
-        function checkAndRestoreLockedModal() {
-            if (!isStorageLockActive()) return;
-            const savedInfo = localStorage.getItem(LOCK_INFO_KEY);
-            if (savedInfo) {
-                try {
-                    const info = JSON.parse(savedInfo);
-                    if (info.pendingStopEntry) pendingStopEntry = info.pendingStopEntry;
-                    renderFloatingModalUI(info.dataObj, info.codeId, info.actionLabel);
-                } catch(e) {}
-            }
-        }
-
-        function renderFloatingModalUI(dataObj, codeId, actionLabel) {
-            let fullText = "";
-            if (dataObj) {
-                const parts = [dataObj.t1, dataObj.t2, dataObj.t3, dataObj.t4].filter(t => t && t.trim() !== '');
-                fullText = parts.length > 0 ? parts.join(' • ') : codeId;
-            } else {
-                fullText = codeId || "Laufende Tätigkeit";
-            }
-
-            document.getElementById('floating-task-title').textContent = fullText;
-
-            // Tags in Floating Modal rendern (wie Normalansicht)
-            const tagsBox = document.getElementById('floating-tags');
-            tagsBox.innerHTML = '';
-            if (dataObj) {
-                [dataObj.t1, dataObj.t2, dataObj.t3, dataObj.t4].forEach((levelText, idx) => {
-                    if (levelText) levelText.split(',').forEach(item => {
-                        const trimmed = item.trim();
-                        if (trimmed) {
-                            const span = document.createElement('span');
-                            span.className = 'tag'; 
-                            span.style.backgroundColor = levelColors[idx] || '#7f8c8d';
-                            span.textContent = trimmed; 
-                            tagsBox.appendChild(span);
-                        }
-                    });
-                });
-            }
-
-            const badge = document.getElementById('floating-status-badge');
-            const icon = document.getElementById('floating-badge-icon');
-            const badgeContainer = document.getElementById('floating-badge-container');
-            const topBookBtn = document.getElementById('floating-top-book-btn');
-            const codeDisplay = document.getElementById('floating-code-display');
-            const timeDisplay = document.getElementById('floating-time-display');
-            const startButtons = document.getElementById('floating-start-buttons');
-            const stopButtons = document.getElementById('floating-stop-buttons');
-
-            if (floatingLiveTimerInterval) {
-                clearInterval(floatingLiveTimerInterval);
-                floatingLiveTimerInterval = null;
-            }
-
-            // Umschaltung nach Vorgabe
-            if (actionLabel === 'gestoppt') {
-                // STOPP-FENSTER:
-                // 1. Alte Überschrift "Tätigkeit Buchen" mit rotem Punkt entfernen
-                badgeContainer.classList.add('hidden');
-
-                // 2. An diese Stelle den Button "🟢 Tätigkeit buchen" setzen (ohne "(Normalansicht)")
-                topBookBtn.classList.remove('hidden');
-
-                // 3. Dafür KEIN Code anzeigen
-                codeDisplay.classList.add('hidden');
-
-                // 4. Gestoppte Dauer anzeigen
-                if (pendingStopEntry) {
-                    timeDisplay.textContent = formatTime(pendingStopEntry.durationSec);
-                }
-
-                startButtons.classList.add('hidden');
-                stopButtons.classList.remove('hidden');
-
-            } else {
-                // START-FENSTER (oder Wechsel):
-                // 1. Überschrift „Laufende Tätigkeit“ daneben ein grüner Haken
-                topBookBtn.classList.add('hidden');
-                badgeContainer.classList.remove('hidden');
-                badge.textContent = "Laufende Tätigkeit";
-                badge.className = "text-emerald-800 font-bold text-xs";
-                icon.textContent = "✅";
-                badgeContainer.className = "inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 text-xs px-3.5 py-1.5 rounded-full font-bold mb-3 border border-emerald-300";
-
-                // 2. Code anzeigen
-                codeDisplay.textContent = `Code: ${codeId || 'ID'}`;
-                codeDisplay.classList.remove('hidden');
-
-                // 3. Zeitanzeige läuft live wie in der Normalansicht mit
-                if (currentTask && currentTask.startTime) {
-                    const updateLiveTime = () => {
-                        const diffSec = Math.floor((Date.now() - new Date(currentTask.startTime).getTime()) / 1000);
-                        timeDisplay.textContent = formatTime(Math.max(0, diffSec));
-                    };
-                    updateLiveTime();
-                    floatingLiveTimerInterval = setInterval(updateLiveTime, 1000);
-                }
-
-                startButtons.classList.remove('hidden');
-                stopButtons.classList.add('hidden');
-            }
-
-            updateFloatingProgressBar();
-            const modal = document.getElementById('floating-modal');
-            modal.classList.remove('hidden');
-
-            if (floatingTimerInterval) clearInterval(floatingTimerInterval);
-            floatingTimerInterval = setInterval(() => {
-                const remaining = getRemainingLockSeconds();
-                updateFloatingProgressBar();
-
-                if (remaining <= 0) {
-                    clearInterval(floatingTimerInterval);
-                    floatingTimerInterval = null;
-                    if (floatingLiveTimerInterval) {
-                        clearInterval(floatingLiveTimerInterval);
-                        floatingLiveTimerInterval = null;
-                    }
-                    handleFloatingAutoClose();
-                }
-            }, 100);
-        }
-
-        // Halbtransparenter anwachsender roter Balken
-        function updateFloatingProgressBar() {
+        // Fortschrittsbalken ganz unten unter dem Abbrechen-Button
+        function updateModalProgressBar() {
             const bar = document.getElementById('floating-progress-bar');
             if (!bar) return;
 
@@ -799,104 +1050,51 @@
             bar.style.width = percent + '%';
         }
 
-        function dismissFloatingModal(keepAppOpen) {
-            if (floatingTimerInterval) {
-                clearInterval(floatingTimerInterval);
-                floatingTimerInterval = null;
-            }
-            if (floatingLiveTimerInterval) {
-                clearInterval(floatingLiveTimerInterval);
-                floatingLiveTimerInterval = null;
-            }
+        function dismissFloatingModal() {
+            clearAllModalIntervals();
             document.getElementById('floating-modal').classList.add('hidden');
             releaseMultiLayerLock();
-
-            if (keepAppOpen) {
-                showMessage("✅ Normalansicht aktiv.", "success");
-            }
-        }
-
-        function handleFloatingAutoClose() {
-            document.getElementById('floating-modal').classList.add('hidden');
-            releaseMultiLayerLock();
-
-            if (lastActionType === 'stop' && pendingStopEntry) {
-                logs.push(pendingStopEntry);
-                localStorage.setItem('zf_logs', JSON.stringify(logs));
-                updateLogUI();
-                pendingStopEntry = null;
-
-                if (timerInterval) clearInterval(timerInterval);
-                timerInterval = null;
-                currentTask = null;
-                localStorage.removeItem('zf_active_task');
-                document.getElementById('active-task-section').classList.add('hidden');
-            }
-
-            tryCloseBrowserWindow();
         }
 
         function tryCloseBrowserWindow() {
             try {
                 window.close();
             } catch(e) {}
-            showMessage("✅ Tätigkeit gespeichert. Smartphone kann gesperrt werden.", "success");
+            showMessage("✅ Gespeichert. Smartphone kann gesperrt werden.", "success");
         }
 
-        // Funktion zum Schließen aller offenen Fenster / Tabs dieser App
+        // Multi-Close für alle Tabs
         function closeAllAppWindows() {
-            // 1. Signal an alle anderen offenen Tabs via BroadcastChannel senden
             if (appBroadcast) {
                 try { appBroadcast.postMessage('CLOSE_ALL_TABS'); } catch(e) {}
             }
-            // 2. Fallback-Signal via localStorage für alle Browser/WebViews
             try {
                 localStorage.setItem(CLOSE_TRIGGER_KEY, Date.now().toString());
             } catch(e) {}
 
-            // 3. Eigenes Fenster schließen versuchen
-            try {
-                window.close();
-            } catch(e) {}
-
-            // 4. Falls Browser das direkte Schließen verweigert (Sicherheits-Sandbox)
-            showMessage("Signal an alle Fenster gesendet. Du kannst das Fenster nun schließen oder sperren.", "info");
+            try { window.close(); } catch(e) {}
+            showMessage("Signal an alle Fenster gesendet. Du kannst das Fenster schließen oder sperren.", "info");
         }
 
-        // Wird in Hintergrund-Tabs ausgeführt, wenn das Schließ-Signal eintrifft
         function handleRemoteCloseRequest() {
-            try {
-                window.close();
-            } catch(e) {}
+            try { window.close(); } catch(e) {}
             const activeSection = document.getElementById('active-task-section');
             if (activeSection) activeSection.classList.add('hidden');
             showMessage("Session beendet. Dieses Fenster kann geschlossen werden.", "info");
         }
 
-        function cancelFloatingTask() {
-            if (floatingTimerInterval) {
-                clearInterval(floatingTimerInterval);
-                floatingTimerInterval = null;
-            }
-            if (floatingLiveTimerInterval) {
-                clearInterval(floatingLiveTimerInterval);
-                floatingLiveTimerInterval = null;
-            }
-            document.getElementById('floating-modal').classList.add('hidden');
-            releaseMultiLayerLock();
+        function restoreActiveTaskUI() {
+            document.getElementById('active-task-section').classList.remove('hidden');
+            document.getElementById('active-id').textContent = currentTask.id;
+            
+            const tagsContainer = document.getElementById('active-tags');
+            renderTagsInto(tagsContainer, currentTask.dataObj);
 
-            pendingStopEntry = null;
-
-            if (timerInterval) {
-                clearInterval(timerInterval);
-                timerInterval = null;
-            }
-            currentTask = null;
-            localStorage.removeItem('zf_active_task');
-            document.getElementById('active-task-section').classList.add('hidden');
-
-            showMessage("↩️ Buchung verworfen. Keine Zeit erfasst.", "success");
-            tryCloseBrowserWindow();
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                const diffSeconds = Math.floor((new Date() - new Date(currentTask.startTime)) / 1000);
+                document.getElementById('active-time').textContent = formatTime(diffSeconds);
+            }, 1000);
         }
 
         function formatShortTime(timeStr) {
@@ -919,15 +1117,7 @@
                 const li = document.createElement('li');
                 li.className = "bg-slate-50 p-3.5 rounded-xl text-sm border border-slate-200 shadow-sm";
                 
-                let taetigkeitText = "";
-                if (log.dataObj) {
-                    const parts = [log.dataObj.t1, log.dataObj.t2, log.dataObj.t3, log.dataObj.t4]
-                        .filter(t => t && t.trim() !== '');
-                    taetigkeitText = parts.length > 0 ? parts.join(' • ') : log.id;
-                } else {
-                    taetigkeitText = log.id;
-                }
-
+                const taetigkeitText = getFullTaskText(log.dataObj, log.id);
                 const shortStart = formatShortTime(log.startTime);
                 const shortEnd = formatShortTime(log.endTime);
 
