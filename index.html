@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=5.0, user-scalable=yes">
-    <title>⏱️ Zeit-Scanner v2.9.4</title>
+    <title>⏱️ Zeit-Scanner v2.9.5</title>
 
     <!-- Tailwind CSS laden -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -29,7 +29,7 @@
 <body>
     <div class="app-container flex flex-col relative pb-16">
         
-        <!-- Header mit Versionsplakette v2.9.4 -->
+        <!-- Header mit Versionsplakette v2.9.5 -->
         <header class="bg-slate-800 text-white p-3.5 shadow-md sticky top-0 z-50">
             <div class="flex justify-between items-center">
                 <div class="text-left">
@@ -47,7 +47,7 @@
 
                 <!-- Versions-Badge -->
                 <span class="text-[10px] bg-emerald-400 text-slate-950 font-black px-2.5 py-1 rounded-full border border-emerald-300 font-mono shadow-sm">
-                    v2.9.4 Wechsel
+                    v2.9.5 Layout
                 </span>
             </div>
         </header>
@@ -110,9 +110,9 @@
         <div id="floating-modal" class="fixed inset-0 bg-slate-950/85 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md transition-all">
             <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-2 border-emerald-500 text-center flex flex-col items-center">
                 
-                <!-- ========================================== -->
-                <!-- ANSICHT 1: STANDARD (Start, Stopp, F1, F3) -->
-                <!-- ========================================== -->
+                <!-- ======================================================== -->
+                <!-- ANSICHT 1: STANDARD (Start, Stopp, Wechsel F1, Wechsel F3) -->
+                <!-- ======================================================== -->
                 <div id="modal-standard-view" class="w-full flex flex-col items-center">
                     
                     <!-- Status & Badge oben für Start (oder F3) -->
@@ -121,37 +121,30 @@
                         <span id="floating-badge-icon">✅</span>
                     </div>
 
-                    <!-- Aktions-Button oben für Stopp ODER Wechsel F1 ("Tätigkeit 1 buchen?") -->
+                    <!-- Aktions-Button oben für Stopp ODER Wechsel F1 ("Tätigkeit 1 buchen") -->
                     <button id="floating-top-action-btn" onclick="handleTopActionClick()" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 text-sm md:text-base transition-all border border-blue-500 mb-3 hidden">
                         <span id="floating-top-action-icon">🟢</span>
-                        <span id="floating-top-action-text">Tätigkeit buchen</span>
+                        <span id="floating-top-action-text">Tätigkeit 1 buchen</span>
                     </button>
 
                     <!-- Zeitanzeige (Live-Timer oder gestoppte Dauer) -->
-                    <div id="floating-time-display" class="text-4xl font-mono font-bold text-slate-800 mb-2 border-b border-slate-100 pb-2 w-full">
+                    <div id="floating-time-display" class="text-4xl font-mono font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2 w-full">
                         00:00:00
                     </div>
 
-                    <!-- Vollständige Tätigkeitsbeschreibung -->
-                    <h3 id="floating-task-title" class="font-black text-slate-900 text-base md:text-lg leading-snug break-words mb-2 px-1">
-                        Lade Tätigkeit...
-                    </h3>
-
-                    <!-- Wechsel-Hinweisbox (erscheint in Fenster 1 des Wechsels) -->
-                    <div id="floating-switch-hint" class="hidden text-xs bg-indigo-50 text-indigo-900 font-semibold p-2.5 rounded-xl border border-indigo-200 mb-2 w-full text-left">
-                        <div class="text-[10px] text-indigo-500 uppercase tracking-wider font-bold mb-0.5">Wechsel zu neuer Tätigkeit:</div>
-                        <div id="floating-next-task-name" class="font-bold text-indigo-950 truncate">Tätigkeit 2</div>
+                    <!-- Vollständige Tätigkeitsbeschreibung: Schwarz auf Weiß, maximale Lesbarkeit mit Auto-Scaling -->
+                    <div class="w-full px-1 mb-3 min-h-[48px] flex items-center justify-center">
+                        <h3 id="floating-task-title" class="font-black text-slate-900 leading-snug break-words text-center">
+                            Lade Tätigkeit...
+                        </h3>
                     </div>
 
-                    <!-- Tags / Pillen wie in der Normalansicht -->
-                    <div id="floating-tags" class="flex flex-wrap justify-center gap-1 mb-2"></div>
-
-                    <!-- Code ID Kennung (Wird bei Stopp ausgeblendet) -->
-                    <div class="text-xs font-mono font-bold text-slate-500 mb-2 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200" id="floating-code-display">
+                    <!-- Code ID Kennung (Wird bei Stopp und Wechsel ausgeblendet) -->
+                    <div class="text-xs font-mono font-bold text-slate-500 mb-2.5 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200" id="floating-code-display">
                         Code: ID-XXXXXX
                     </div>
 
-                    <!-- Blauer Pause-Button (Platzhalter) -->
+                    <!-- Blauer Pause-Button -->
                     <button id="floating-pause-btn" type="button" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 text-xs md:text-sm transition-all my-1.5 border border-blue-500">
                         <span>⏸️</span>
                         <span>Pause</span>
@@ -174,31 +167,31 @@
                 </div>
 
                 <!-- ======================================================== -->
-                <!-- ANSICHT 2: FENSTER 2 BEI WECHSEL (Bestätigungsmeldung)    -->
+                <!-- ANSICHT 2: FENSTER 2 BEI WECHSEL (Erfolgsanzeige)        -->
                 <!-- ======================================================== -->
                 <div id="modal-switch-confirm-view" class="w-full flex flex-col items-center hidden py-1">
-                    <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mb-3 shadow-inner">
+                    <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mb-2.5 shadow-inner">
                         ✓
                     </div>
-                    <h3 class="text-base md:text-lg font-black text-slate-900 mb-1 leading-snug">
-                        Tätigkeit 1 gebucht,<br>Tätigkeit 2 gestartet!
+                    
+                    <!-- 1. "Tätigkeit gebucht" schwarz auf weiß -->
+                    <h3 class="text-xl md:text-2xl font-black text-slate-900 mb-2 leading-snug">
+                        Tätigkeit gebucht
                     </h3>
-                    <p class="text-xs text-slate-500 mb-3 px-1">
-                        Die vorherige Zeit wurde verbucht. Die neue Arbeitszeit läuft.
-                    </p>
 
-                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 w-full text-left mb-3.5 text-xs space-y-1.5 shadow-sm">
-                        <div class="text-slate-600">
-                            <span class="text-slate-400">Gebucht:</span> <strong id="confirm-task1-name" class="text-slate-800"></strong>
-                        </div>
-                        <div class="text-slate-600">
-                            <span class="text-slate-400">Neu aktiv:</span> <strong id="confirm-task2-name" class="text-emerald-700"></strong>
+                    <!-- 2. Absatz + Grün hinterlegt "Tätigkeit" und komplette Beschreibung so groß wie möglich -->
+                    <div class="w-full bg-emerald-50 border-2 border-emerald-400 rounded-2xl p-4 my-3 text-center shadow-sm">
+                        <span class="inline-block bg-emerald-600 text-white text-xs font-black px-3.5 py-1 rounded-full uppercase tracking-wider mb-2 shadow-sm">
+                            Tätigkeit
+                        </span>
+                        <div id="confirm-task-title" class="font-black text-slate-900 leading-snug break-words">
+                            <!-- Dynamische Tätigkeitsbeschreibung -->
                         </div>
                     </div>
 
-                    <!-- Sofort-Weiter-Button -->
-                    <button onclick="transitionToSwitchWindow3()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3 px-4 rounded-xl shadow text-xs transition-all mb-2.5 flex items-center justify-center gap-1.5">
-                        <span>Weiter zu Tätigkeit 2</span>
+                    <!-- 3. Button mit dem Wort "Gestartet" -->
+                    <button onclick="transitionToSwitchWindow3()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black py-3.5 px-4 rounded-2xl shadow-lg text-sm md:text-base transition-all mb-3 flex items-center justify-center gap-2 border border-emerald-500">
+                        <span>Gestartet</span>
                         <span>▶️</span>
                     </button>
 
@@ -217,7 +210,7 @@
                 <!-- ======================================================== -->
                 <div id="modal-switch-timeout-view" class="w-full flex flex-col items-center hidden py-1">
                     <div class="inline-flex items-center gap-1.5 bg-blue-100 text-blue-800 text-xs px-3.5 py-1.5 rounded-full font-bold mb-3 border border-blue-300">
-                        <span>ℹ️ Tätigkeit 1 automatisch gebucht</span>
+                        <span>ℹ️ Tätigkeit automatisch gebucht</span>
                     </div>
 
                     <!-- Live-Timer für Tätigkeit 2 -->
@@ -225,11 +218,14 @@
                         00:00:00
                     </div>
 
-                    <h3 id="timeout-task2-title" class="font-black text-slate-900 text-base leading-snug break-words mb-2 px-1">
-                        Tätigkeit 2
-                    </h3>
+                    <div class="w-full px-1 mb-3 min-h-[44px] flex items-center justify-center">
+                        <h3 id="timeout-task2-title" class="font-black text-slate-900 leading-snug break-words text-center">
+                            Tätigkeit 2
+                        </h3>
+                    </div>
+                    
                     <p class="text-xs text-slate-500 mb-4 px-1">
-                        Tätigkeit 1 wurde gespeichert. Die Zeit für Tätigkeit 2 läuft im Hintergrund ab Scan weiter.
+                        Vorherige Tätigkeit gespeichert. Die Zeit läuft im Hintergrund ab Scan weiter.
                     </p>
 
                     <div class="w-full space-y-2 mb-1">
@@ -283,9 +279,8 @@
 
         // ==========================================================
         // ZENTRALE STEUERUNG FÜR ALLE COUNTDOWNS & SPERREN
-        // (Ändere diese Zahl für globale Anpassungen aller Timer & Balken)
         // ==========================================================
-        const COOLDOWN_SECONDS = 20;
+        const COOLDOWN_SECONDS = 10;
 
         // BroadcastChannel für sofortige tab-übergreifende Schließ-Signale
         const appBroadcast = ('BroadcastChannel' in window) ? new BroadcastChannel('zf_app_channel') : null;
@@ -315,6 +310,46 @@
         let currentModalMode = 'start'; 
         let pendingStopEntry = null;
         let pendingSwitchTask2 = null;
+
+        /**
+         * Dynamische Schriftgrößen-Anpassung:
+         * Stellt sicher, dass der Text schwarz auf weiß so groß wie möglich dargestellt wird,
+         * ohne jemals abgeschnitten oder mit Ellipsis (...) verkürzt zu werden.
+         */
+        function applyDynamicTaskTitle(elementId, text) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            el.textContent = text || '';
+
+            const len = (text || '').length;
+            let baseSize = 23;
+
+            if (len <= 25) {
+                baseSize = 24;
+            } else if (len <= 55) {
+                baseSize = 20;
+            } else if (len <= 95) {
+                baseSize = 17.5;
+            } else if (len <= 140) {
+                baseSize = 15.5;
+            } else {
+                baseSize = 14;
+            }
+
+            el.style.fontSize = baseSize + 'px';
+            el.style.lineHeight = '1.3';
+            el.style.wordBreak = 'break-word';
+            el.style.overflowWrap = 'break-word';
+
+            // Feinabstimmung auf schmalen Smartphone-Displays
+            requestAnimationFrame(() => {
+                let size = baseSize;
+                while (el.scrollHeight > 120 && size > 12) {
+                    size -= 0.5;
+                    el.style.fontSize = size + 'px';
+                }
+            });
+        }
 
         function isStorageLockActive() {
             try {
@@ -584,6 +619,7 @@
         }
 
         function renderTagsInto(container, dataObj) {
+            if (!container) return;
             container.innerHTML = '';
             if (!dataObj) return;
             [dataObj.t1, dataObj.t2, dataObj.t3, dataObj.t4].forEach((levelText, idx) => {
@@ -728,14 +764,9 @@
             // Zeitanzeige: Dauer von Tätigkeit 1 bis jetzt
             document.getElementById('floating-time-display').textContent = formatTime(durationTask1);
 
-            // Name von Tätigkeit 1
-            document.getElementById('floating-task-title').textContent = getFullTaskText(currentTask.dataObj, currentTask.id);
-            renderTagsInto(document.getElementById('floating-tags'), currentTask.dataObj);
-
-            // Hinweisbox auf neue Tätigkeit 2
-            const switchHint = document.getElementById('floating-switch-hint');
-            switchHint.classList.remove('hidden');
-            document.getElementById('floating-next-task-name').textContent = getFullTaskText(newTaskMasterEntry, newTaskMasterEntry.id);
+            // Optimierung 2: Tätigkeitsbeschreibung schwarz auf weiß so groß wie möglich (ohne bunte Balken)
+            const task1Text = getFullTaskText(currentTask.dataObj, currentTask.id);
+            applyDynamicTaskTitle('floating-task-title', task1Text);
 
             // Kein Code im Zwischenfenster
             document.getElementById('floating-code-display').classList.add('hidden');
@@ -784,22 +815,21 @@
             restoreActiveTaskUI();
 
             const task1Title = getFullTaskText(pendingStopEntry.dataObj, pendingStopEntry.id);
-            const task2Title = getFullTaskText(currentTask.dataObj, currentTask.id);
 
             pendingStopEntry = null;
             pendingSwitchTask2 = null;
 
-            // 3. FENSTER 2 ANZEIGEN (Dauer synchron an COOLDOWN_SECONDS gekoppelt)
+            // 3. FENSTER 2 ANZEIGEN (Optimierung 3: Erfolgsanzeige)
             currentModalMode = 'switch_f2';
             document.getElementById('modal-standard-view').classList.add('hidden');
             document.getElementById('modal-switch-confirm-view').classList.remove('hidden');
             document.getElementById('modal-switch-timeout-view').classList.add('hidden');
 
-            document.getElementById('confirm-task1-name').textContent = task1Title;
-            document.getElementById('confirm-task2-name').textContent = task2Title;
+            // Vollständige Tätigkeitsbeschreibung in der grünen Box so groß wie möglich
+            applyDynamicTaskTitle('confirm-task-title', task1Title);
 
             const confirmStartTime = Date.now();
-            const durationMs = COOLDOWN_SECONDS * 1000; // Ausnahmslos an COOLDOWN_SECONDS gekoppelt!
+            const durationMs = COOLDOWN_SECONDS * 1000;
 
             const confirmProgressBar = document.getElementById('confirm-progress-bar');
             const confirmLabel = document.getElementById('confirm-timer-label');
@@ -845,13 +875,14 @@
             restoreActiveTaskUI();
             pendingSwitchTask2 = null;
 
-            // Timeout-Fenster mit 2 Buttons anzeigen: [Pause] und [Tätigkeit 2 aufnehmen]
+            // Timeout-Fenster anzeigen
             currentModalMode = 'switch_timeout';
             document.getElementById('modal-standard-view').classList.add('hidden');
             document.getElementById('modal-switch-confirm-view').classList.add('hidden');
             document.getElementById('modal-switch-timeout-view').classList.remove('hidden');
 
-            document.getElementById('timeout-task2-title').textContent = getFullTaskText(currentTask.dataObj, currentTask.id);
+            const task2Title = getFullTaskText(currentTask.dataObj, currentTask.id);
+            applyDynamicTaskTitle('timeout-task2-title', task2Title);
 
             const updateTimeoutLiveTime = () => {
                 const diffSec = Math.floor((Date.now() - new Date(currentTask.startTime).getTime()) / 1000);
@@ -861,7 +892,7 @@
             timeoutLiveTimerInterval = setInterval(updateTimeoutLiveTime, 1000);
 
             releaseMultiLayerLock();
-            showMessage("✅ Tätigkeit 1 automatisch gebucht. Tätigkeit 2 läuft.", "info");
+            showMessage("✅ Vorherige Tätigkeit gebucht. Neue Tätigkeit läuft.", "info");
         }
 
         // Klick auf "▶️ Tätigkeit 2 aufnehmen" im Timeout-Fenster
@@ -900,9 +931,9 @@
                 floatingLiveTimerInterval = setInterval(updateLiveTime, 1000);
             }
 
-            document.getElementById('floating-task-title').textContent = getFullTaskText(dataObj, codeId);
-            document.getElementById('floating-switch-hint').classList.add('hidden');
-            renderTagsInto(document.getElementById('floating-tags'), dataObj);
+            // Optimierung 1: Tätigkeitsbeschreibung nur 1x schwarz auf weiß so groß wie möglich (kein blauer Balken)
+            const fullTitle = getFullTaskText(dataObj, codeId);
+            applyDynamicTaskTitle('floating-task-title', fullTitle);
 
             const codeDisplay = document.getElementById('floating-code-display');
             codeDisplay.textContent = `Code: ${codeId || 'ID'}`;
@@ -946,9 +977,8 @@
                 document.getElementById('floating-time-display').textContent = formatTime(pendingStopEntry.durationSec);
             }
 
-            document.getElementById('floating-task-title').textContent = getFullTaskText(dataObj, codeId);
-            document.getElementById('floating-switch-hint').classList.add('hidden');
-            renderTagsInto(document.getElementById('floating-tags'), dataObj);
+            const fullTitle = getFullTaskText(dataObj, codeId);
+            applyDynamicTaskTitle('floating-task-title', fullTitle);
             document.getElementById('floating-code-display').classList.add('hidden');
 
             document.getElementById('floating-cancel-text').textContent = 'Abbrechen (Buchung verwerfen)';
