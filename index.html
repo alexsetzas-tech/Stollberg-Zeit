@@ -45,7 +45,7 @@
                     <div class="text-[11px] text-slate-300 font-mono mt-0.5" id="device-id-display">Geräte-ID: Lade...</div>
                 </div>
 
-                <!-- Versions-Badge: v2.9.4 signalisiert die neue Wechsel-Logik -->
+                <!-- Versions-Badge -->
                 <span class="text-[10px] bg-emerald-400 text-slate-950 font-black px-2.5 py-1 rounded-full border border-emerald-300 font-mono shadow-sm">
                     v2.9.4 Wechsel
                 </span>
@@ -151,27 +151,19 @@
                         Code: ID-XXXXXX
                     </div>
 
-                    <!-- 
-                        NEU: BLAUER PAUSE-BUTTON AN DER ALTEN BALKEN-STELLE!
-                        (Vorerst ohne Funktion als Platzhalter)
-                    -->
+                    <!-- Blauer Pause-Button (Platzhalter) -->
                     <button id="floating-pause-btn" type="button" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 text-xs md:text-sm transition-all my-1.5 border border-blue-500">
                         <span>⏸️</span>
                         <span>Pause</span>
                     </button>
 
-                    <!-- 
-                        ABBRECHEN-BUTTON (GRAU GEFÄRBT)
-                    -->
+                    <!-- Abbrechen-Button (Grau) -->
                     <button id="floating-cancel-btn" onclick="handleFloatingCancel()" class="w-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold py-2.5 px-4 rounded-xl border border-slate-300 flex items-center justify-center gap-2 text-xs transition-all shadow-sm my-1">
                         <span id="floating-cancel-icon">✕</span>
                         <span id="floating-cancel-text">Abbrechen (Buchung verwerfen)</span>
                     </button>
 
-                    <!-- 
-                        NEU: ROTER LAUFBALKEN GANZ UNTEN UNTER DEM ABBRECHEN-BUTTON!
-                        (Füllt sich über die Dauer von COOLDOWN_SECONDS von 0 % auf 100 %)
-                    -->
+                    <!-- Roter Laufbalken ganz unten unter dem Abbrechen-Button -->
                     <div id="floating-progress-container" class="relative w-full overflow-hidden rounded-xl border border-amber-300 bg-amber-50 py-2.5 px-3 text-center mt-2.5 shadow-inner">
                         <div id="floating-progress-bar" class="absolute top-0 bottom-0 left-0 bg-rose-500/35 transition-all duration-100 ease-linear rounded-l-xl" style="width: 0%;"></div>
                         <div class="relative z-10 text-xs text-amber-900 font-bold flex items-center justify-center gap-1.5 select-none pointer-events-none">
@@ -204,18 +196,18 @@
                         </div>
                     </div>
 
-                    <!-- Sofort-Weiter-Button (falls Mitarbeiter nicht die vollen 10s warten will) -->
+                    <!-- Sofort-Weiter-Button -->
                     <button onclick="transitionToSwitchWindow3()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3 px-4 rounded-xl shadow text-xs transition-all mb-2.5 flex items-center justify-center gap-1.5">
                         <span>Weiter zu Tätigkeit 2</span>
                         <span>▶️</span>
                     </button>
 
-                    <!-- Fortschrittsbalken für die 10 Sekunden Anzeigezeit -->
+                    <!-- Fortschrittsbalken synchron mit COOLDOWN_SECONDS -->
                     <div class="relative w-full overflow-hidden rounded-xl border border-emerald-300 bg-emerald-50 py-2.5 px-3 text-center shadow-inner">
                         <div id="confirm-progress-bar" class="absolute top-0 bottom-0 left-0 bg-emerald-500/35 transition-all duration-100 ease-linear rounded-l-xl" style="width: 0%;"></div>
                         <div class="relative z-10 text-[11px] text-emerald-900 font-bold flex items-center justify-center gap-1.5 select-none pointer-events-none">
                             <span>⏱️</span>
-                            <span id="confirm-timer-label">Öffnet Start-Fenster in 10s...</span>
+                            <span id="confirm-timer-label">Öffnet Start-Fenster...</span>
                         </div>
                     </div>
                 </div>
@@ -240,7 +232,6 @@
                         Tätigkeit 1 wurde gespeichert. Die Zeit für Tätigkeit 2 läuft im Hintergrund ab Scan weiter.
                     </p>
 
-                    <!-- Die geforderten 2 Buttons: Pause & Tätigkeit 2 aufnehmen -->
                     <div class="w-full space-y-2 mb-1">
                         <button type="button" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 text-xs md:text-sm transition-all border border-blue-500">
                             <span>⏸️</span>
@@ -289,6 +280,11 @@
         const LOCK_INFO_KEY = 'zf_floating_info';
         const LAST_ACTION_KEY = 'zf_last_action_timestamp';
         const CLOSE_TRIGGER_KEY = 'zf_close_all_windows_trigger';
+
+        // ==========================================================
+        // ZENTRALE STEUERUNG FÜR ALLE COUNTDOWNS & SPERREN
+        // (Ändere diese Zahl für globale Anpassungen aller Timer & Balken)
+        // ==========================================================
         const COOLDOWN_SECONDS = 10;
 
         // BroadcastChannel für sofortige tab-übergreifende Schließ-Signale
@@ -750,14 +746,13 @@
             document.getElementById('floating-modal').classList.remove('hidden');
             updateModalProgressBar();
 
-            // 10-Sekunden Countdown für Fenster 1
+            // Countdown für Fenster 1 synchron über COOLDOWN_SECONDS
             floatingTimerInterval = setInterval(() => {
                 const remaining = getRemainingLockSeconds();
                 updateModalProgressBar();
 
                 if (remaining <= 0) {
                     clearAllModalIntervals();
-                    // TIMEOUT BEI FENSTER 1 (PFAD B):
                     handleSwitchWindow1Timeout();
                 }
             }, 100);
@@ -766,15 +761,13 @@
         // Klick auf den oberen Button ("🟢 Tätigkeit buchen")
         function handleTopActionClick() {
             if (currentModalMode === 'switch_f1') {
-                // PFAD A BEI WECHSEL: Tätigkeit 1 buchen -> Fenster 2 öffnen
                 confirmSwitchAndOpenWindow2();
             } else {
-                // REGULÄRES STOPP-FENSTER
                 confirmAndBookStoppedTask();
             }
         }
 
-        // PFAD A: Tätigkeitswechsel bestätigt -> FENSTER 2 (Bestätigung ca. 10s)
+        // PFAD A: Tätigkeitswechsel bestätigt -> FENSTER 2 (Bestätigung synchron zu COOLDOWN_SECONDS)
         function confirmSwitchAndOpenWindow2() {
             clearAllModalIntervals();
 
@@ -796,7 +789,7 @@
             pendingStopEntry = null;
             pendingSwitchTask2 = null;
 
-            // 3. FENSTER 2 ANZEIGEN (ca. 10 Sekunden)
+            // 3. FENSTER 2 ANZEIGEN (Dauer synchron an COOLDOWN_SECONDS gekoppelt)
             currentModalMode = 'switch_f2';
             document.getElementById('modal-standard-view').classList.add('hidden');
             document.getElementById('modal-switch-confirm-view').classList.remove('hidden');
@@ -806,10 +799,11 @@
             document.getElementById('confirm-task2-name').textContent = task2Title;
 
             const confirmStartTime = Date.now();
-            const durationMs = 10000; // Exakt 10 Sekunden Anzeigezeit für Fenster 2
+            const durationMs = COOLDOWN_SECONDS * 1000; // Ausnahmslos an COOLDOWN_SECONDS gekoppelt!
 
             const confirmProgressBar = document.getElementById('confirm-progress-bar');
             const confirmLabel = document.getElementById('confirm-timer-label');
+            confirmLabel.textContent = `Öffnet Start-Fenster in ${COOLDOWN_SECONDS}s...`;
 
             switchF2TimerInterval = setInterval(() => {
                 const elapsed = Date.now() - confirmStartTime;
@@ -833,7 +827,7 @@
             openStartModal(currentTask.dataObj, currentTask.id, 'switch_f3');
         }
 
-        // PFAD B: Timeout in Fenster 1 (Kein Klick innerhalb von 10 Sekunden)
+        // PFAD B: Timeout in Fenster 1 (Kein Klick innerhalb von COOLDOWN_SECONDS)
         function handleSwitchWindow1Timeout() {
             clearAllModalIntervals();
 
@@ -889,7 +883,6 @@
             document.getElementById('modal-switch-timeout-view').classList.add('hidden');
 
             // START-FENSTER:
-            // 1. Überschrift „Laufende Tätigkeit“ mit grünem Haken
             document.getElementById('floating-top-action-btn').classList.add('hidden');
             const badgeContainer = document.getElementById('floating-badge-container');
             badgeContainer.classList.remove('hidden');
@@ -897,7 +890,6 @@
             document.getElementById('floating-badge-icon').textContent = "✅";
             badgeContainer.className = "inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 text-xs px-3.5 py-1.5 rounded-full font-bold mb-3 border border-emerald-300";
 
-            // 2. Zeit läuft live mit
             const timeDisplay = document.getElementById('floating-time-display');
             if (currentTask && currentTask.startTime) {
                 const updateLiveTime = () => {
@@ -908,7 +900,6 @@
                 floatingLiveTimerInterval = setInterval(updateLiveTime, 1000);
             }
 
-            // 3. Titel, Tags, Code
             document.getElementById('floating-task-title').textContent = getFullTaskText(dataObj, codeId);
             document.getElementById('floating-switch-hint').classList.add('hidden');
             renderTagsInto(document.getElementById('floating-tags'), dataObj);
@@ -917,7 +908,6 @@
             codeDisplay.textContent = `Code: ${codeId || 'ID'}`;
             codeDisplay.classList.remove('hidden');
 
-            // Abbrechen-Button Text
             document.getElementById('floating-cancel-text').textContent = 'Abbrechen (Buchung verwerfen)';
 
             updateModalProgressBar();
@@ -945,27 +935,22 @@
             document.getElementById('modal-switch-timeout-view').classList.add('hidden');
 
             // STOPP-FENSTER:
-            // 1. Badge oben ausblenden
             document.getElementById('floating-badge-container').classList.add('hidden');
 
-            // 2. Button "🟢 Tätigkeit buchen" ganz oben platzieren
             const topBtn = document.getElementById('floating-top-action-btn');
             topBtn.classList.remove('hidden');
             document.getElementById('floating-top-action-icon').textContent = '🟢';
             document.getElementById('floating-top-action-text').textContent = 'Tätigkeit buchen';
 
-            // 3. Gestoppte Dauer anzeigen
             if (pendingStopEntry) {
                 document.getElementById('floating-time-display').textContent = formatTime(pendingStopEntry.durationSec);
             }
 
-            // 4. Titel & Tags, KEIN Code
             document.getElementById('floating-task-title').textContent = getFullTaskText(dataObj, codeId);
             document.getElementById('floating-switch-hint').classList.add('hidden');
             renderTagsInto(document.getElementById('floating-tags'), dataObj);
             document.getElementById('floating-code-display').classList.add('hidden');
 
-            // 5. Abbrechen-Button
             document.getElementById('floating-cancel-text').textContent = 'Abbrechen (Buchung verwerfen)';
 
             updateModalProgressBar();
@@ -1010,8 +995,6 @@
             clearAllModalIntervals();
 
             if (currentModalMode === 'switch_f1') {
-                // ABBRECHEN IN FENSTER 1: WECHSEL WIRD STORNIERT!
-                // Tätigkeit 1 läuft unberührt weiter!
                 pendingSwitchTask2 = null;
                 pendingStopEntry = null;
 
@@ -1020,8 +1003,6 @@
                 return;
             }
 
-            // REGULÄRER ABBRUCH (Start, Stopp, Fenster 3):
-            // Verwirft die aktuelle Buchung rückstandslos
             pendingStopEntry = null;
             pendingSwitchTask2 = null;
 
