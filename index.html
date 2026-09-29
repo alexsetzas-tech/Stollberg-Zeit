@@ -39,7 +39,6 @@
 
         /* ==========================================================================
            C64 RETRO-SKIN DEFINITION (Inspiriert von Commodore 64 & Katakis)
-           Text bleibt gestochen scharf, voller Kontrast und hervorragend lesbar!
            ========================================================================== */
         body.skin-c64 {
             background-color: #1a1040 !important;
@@ -183,9 +182,7 @@
             </div>
         </main>
 
-        <!-- ==========================================================================
-             EINSTELLUNGEN & SKIN-MENÜ (3 WEISSE PUNKTE - AUS v2.9.7 PRO)
-             ========================================================================== -->
+        <!-- EINSTELLUNGEN & SKIN-MENÜ (3 WEISSE PUNKTE) -->
         <div id="settings-menu-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[250] flex items-center justify-center p-4 hidden">
             <div class="c64-modal bg-white w-full max-w-sm rounded-2xl shadow-2xl p-5 border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
                 
@@ -269,8 +266,8 @@
 
                     <button type="button" onclick="testVoiceOutput()" 
                             class="w-full py-1.5 text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-lg transition flex items-center justify-center space-x-1">
-                        <span>▶️</span>
-                        <span>Stimme jetzt testen</span>
+                            <span>▶️</span>
+                            <span>Stimme jetzt testen</span>
                     </button>
                 </div>
 
@@ -305,9 +302,7 @@
             </div>
         </div>
 
-        <!-- ==========================================================================
-             SCHWEBENDES FENSTER (V2.9.5 ORIGINAL-ARCHITEKTUR: START, STOPP, WECHSEL)
-             ========================================================================== -->
+        <!-- SCHWEBENDES FENSTER (START, STOPP, WECHSEL) -->
         <div id="floating-modal" class="fixed inset-0 bg-slate-950/85 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md transition-all">
             <div class="c64-modal bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-2 border-emerald-500 text-center flex flex-col items-center">
                 
@@ -320,25 +315,25 @@
                         <span id="floating-badge-icon">✅</span>
                     </div>
 
-                    <!-- Aktions-Button oben für Stopp ODER Wechsel F1 ("Tätigkeit 1 buchen") -->
+                    <!-- Aktions-Button oben für Stopp ODER Wechsel F1 -->
                     <button id="floating-top-action-btn" onclick="handleTopActionClick()" class="c64-btn w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 text-sm md:text-base transition-all border border-emerald-500 mb-3 hidden">
                         <span id="floating-top-action-icon">🟢</span>
                         <span id="floating-top-action-text">Tätigkeit buchen</span>
                     </button>
 
-                    <!-- Zeitanzeige (Live-Timer für Start ODER fest eingefrorene Dauer für Stopp!) -->
+                    <!-- Zeitanzeige -->
                     <div id="floating-time-display" class="text-4xl font-mono font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2 w-full">
                         00:00:00
                     </div>
 
-                    <!-- Vollständige Tätigkeitsbeschreibung: Schwarz auf Weiß mit Auto-Scaling -->
+                    <!-- Vollständige Tätigkeitsbeschreibung -->
                     <div class="w-full px-1 mb-3 min-h-[48px] flex items-center justify-center">
                         <h3 id="floating-task-title" class="font-black text-slate-900 leading-snug break-words text-center">
                             Lade Tätigkeit...
                         </h3>
                     </div>
 
-                    <!-- Code ID Kennung (Wird bei Stopp ausgeblendet) -->
+                    <!-- Code ID Kennung -->
                     <div class="text-xs font-mono font-bold text-slate-500 mb-2.5 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200" id="floating-code-display">
                         Code: ID-XXXXXX
                     </div>
@@ -355,7 +350,7 @@
                         <span id="floating-cancel-text">Abbrechen (Buchung verwerfen)</span>
                     </button>
 
-                    <!-- Roter Laufbalken ganz unten unter dem Abbrechen-Button -->
+                    <!-- Roter Laufbalken ganz unten -->
                     <div id="floating-progress-container" class="relative w-full overflow-hidden rounded-xl border border-amber-300 bg-amber-50 py-2.5 px-3 text-center mt-2.5 shadow-inner">
                         <div id="floating-progress-bar" class="absolute top-0 bottom-0 left-0 bg-rose-500/35 transition-all duration-100 ease-linear rounded-l-xl" style="width: 0%;"></div>
                         <div class="relative z-10 text-xs text-amber-900 font-bold flex items-center justify-center gap-1.5 select-none pointer-events-none">
@@ -365,7 +360,7 @@
                     </div>
                 </div>
 
-                <!-- ANSICHT 2: FENSTER 2 BEI WECHSEL (Erfolgsanzeige v2.9.5) -->
+                <!-- ANSICHT 2: FENSTER 2 BEI WECHSEL -->
                 <div id="modal-switch-confirm-view" class="w-full flex flex-col items-center hidden py-1">
                     <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mb-2.5 shadow-inner">
                         ✓
@@ -375,14 +370,11 @@
                         Tätigkeit gebucht
                     </h3>
 
-                    <!-- Grüner Kasten mit maximaler Schriftgröße -->
                     <div class="w-full bg-emerald-50 border-2 border-emerald-400 rounded-2xl p-4 my-3 text-center shadow-sm">
                         <span class="inline-block bg-emerald-600 text-white text-xs font-black px-3.5 py-1 rounded-full uppercase tracking-wider mb-2 shadow-sm">
                             Tätigkeit
                         </span>
-                        <div id="confirm-task-title" class="font-black text-slate-900 leading-snug break-words">
-                            <!-- Dynamische Tätigkeitsbeschreibung -->
-                        </div>
+                        <div id="confirm-task-title" class="font-black text-slate-900 leading-snug break-words"></div>
                     </div>
 
                     <button onclick="transitionToSwitchWindow3()" class="c64-btn w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black py-3.5 px-4 rounded-2xl shadow-lg text-sm md:text-base transition-all mb-3 flex items-center justify-center gap-2 border border-emerald-500">
@@ -399,7 +391,7 @@
                     </div>
                 </div>
 
-                <!-- ANSICHT 3: TIMEOUT-STANDBY BEI WECHSEL (v2.9.5) -->
+                <!-- ANSICHT 3: TIMEOUT-STANDBY BEI WECHSEL -->
                 <div id="modal-switch-timeout-view" class="w-full flex flex-col items-center hidden py-1">
                     <div class="inline-flex items-center gap-1.5 bg-blue-100 text-blue-800 text-xs px-3.5 py-1.5 rounded-full font-bold mb-3 border border-blue-300">
                         <span>ℹ️ Tätigkeit automatisch gebucht</span>
@@ -421,7 +413,7 @@
 
                     <div class="w-full space-y-2 mb-1">
                         <button type="button" class="c64-btn w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 text-xs md:text-sm transition-all border border-blue-500">
-                            <span>⏸️</span>
+                            <span>⏸️️</span>
                             <span>Pause</span>
                         </button>
                         <button onclick="resumeTask2StartWindow()" class="c64-btn w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-sm transition-all border border-emerald-500">
@@ -469,7 +461,60 @@
         const CLOSE_TRIGGER_KEY = 'zf_close_all_windows_trigger';
 
         // ==========================================================
-        // DYNAMISCHE EINSTELLUNGEN (AUS v2.9.7 PRO MENÜ)
+        // GOOGLE SHEETS LIVE-SYNCHRONISATION
+        // ==========================================================
+        const GOOGLE_SHEET_URL = "HIER_DEINE_WEB_APP_URL_EINFUEGEN";
+        const GOOGLE_SHEET_TOKEN = "BTZ-Projekt-2026-Geheim";
+
+        /**
+         * Sendet eine abgeschlossene Zeiterfassung geräuschlos im Hintergrund
+         * an das Google Sheet. Blockiert niemals das Handy bei Funklöchern.
+         */
+        function sendTaskLogToGoogleSheets(entry) {
+            if (!entry) return;
+            if (!GOOGLE_SHEET_URL || GOOGLE_SHEET_URL.includes("HIER_DEINE_WEB_APP_URL")) {
+                console.log("ℹ️ Google Sheet URL noch nicht eingerichtet. Buchung bleibt sicher lokal auf dem Gerät.");
+                return;
+            }
+
+            try {
+                // Kategorien auslesen (Kategorie 1 bis 5)
+                const categoriesArray = [];
+                if (entry.dataObj) {
+                    [entry.dataObj.t1, entry.dataObj.t2, entry.dataObj.t3, entry.dataObj.t4].forEach(level => {
+                        if (level) {
+                            level.split(',').forEach(item => { 
+                                if (item.trim()) categoriesArray.push(item.trim()); 
+                            });
+                        }
+                    });
+                }
+
+                // Asynchroner POST-Aufruf ohne CORS-Blockade
+                fetch(GOOGLE_SHEET_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({
+                        token: GOOGLE_SHEET_TOKEN,
+                        deviceId: entry.deviceId || deviceId,
+                        id: entry.id,
+                        startDate: entry.startDate,
+                        startTime: entry.startTime,
+                        endTime: entry.endTime,
+                        durationSec: entry.durationSec,
+                        categories: categoriesArray
+                    })
+                }).catch(err => {
+                    console.log("Offline / Funkloch – Buchung bleibt sicher auf dem Handy:", err);
+                });
+            } catch (e) {
+                console.warn("Fehler beim Senden an Google Sheets:", e);
+            }
+        }
+
+        // ==========================================================
+        // DYNAMISCHE EINSTELLUNGEN
         // ==========================================================
         let cooldownSeconds = parseInt(localStorage.getItem('zf_cooldown_seconds')) || 10;
         let currentSkin = localStorage.getItem('zf_app_skin') || 'modern';
@@ -504,11 +549,6 @@
         let pendingStopEntry = null;
         let pendingSwitchTask2 = null;
 
-        /**
-         * Dynamische Schriftgrößen-Anpassung:
-         * Stellt sicher, dass der Text schwarz auf weiß so groß wie möglich dargestellt wird,
-         * ohne jemals abgeschnitten oder mit Ellipsis (...) verkürzt zu werden.
-         */
         function applyDynamicTaskTitle(elementId, text) {
             const el = document.getElementById(elementId);
             if (!el) return;
@@ -621,7 +661,7 @@
         window.onload = function() {
             setTimeout(initApp, 30);
 
-            // Tab-Synchronisation (v2.9.5 sichergestellt)
+            // Tab-Synchronisation
             window.addEventListener('storage', function(e) {
                 if (e.key === 'zf_active_task') {
                     if (!e.newValue) {
@@ -668,7 +708,6 @@
                 }
                 document.getElementById('device-id-display').textContent = `Geräte-ID: ${deviceId}`;
 
-                // Einstellungen und Skin initialisieren
                 applySkin(currentSkin);
                 initSettingsUI();
                 updateCooldownDisplay(cooldownSeconds);
@@ -701,9 +740,6 @@
             }
         }
 
-        // ==========================================================
-        // MENÜ- & EINSTELLUNGS-LOGIK (3-PUNKTE-MENÜ)
-        // ==========================================================
         function toggleSettingsMenu() {
             const modal = document.getElementById('settings-menu-modal');
             if (modal) modal.classList.toggle('hidden');
@@ -793,9 +829,6 @@
             }
         }
 
-        // ==========================================================
-        // BARRIEREFREIHEIT: SPRACHAUSGABE (TTS WEB SPEECH API)
-        // ==========================================================
         function setTTS(active) {
             isTtsActive = active;
             localStorage.setItem('zf_tts_active', active ? 'true' : 'false');
@@ -1023,7 +1056,7 @@
         }
 
         // ==========================================================
-        // HAUPT-VERARBEITUNG VON SCANS (EXAKT AUS v2.9.5 BATTLE-TESTED)
+        // HAUPT-VERARBEITUNG VON SCANS
         // ==========================================================
         function processScannedId(scannedText, lockAlreadyClaimed) {
             if (!lockAlreadyClaimed && isStorageLockActive()) {
@@ -1057,12 +1090,12 @@
 
             if (currentTask) {
                 if (currentTask.id === scannedId) {
-                    // FALL A: Selber Code nochmal -> Reguläres Stopp-Fenster (v2.9.5)
+                    // FALL A: Selber Code nochmal -> Reguläres Stopp-Fenster
                     currentModalMode = 'stop';
                     prepareStopTaskData(currentTask);
                     openStopModal(currentTask.dataObj, currentTask.id);
                 } else {
-                    // FALL B: Neuer Code gescannt -> TÄTIGKEITSWECHSEL FENSTER 1 (v2.9.5)
+                    // FALL B: Neuer Code gescannt -> TÄTIGKEITSWECHSEL FENSTER 1
                     currentModalMode = 'switch_f1';
                     setupSwitchWindow1(masterEntry);
                 }
@@ -1080,10 +1113,6 @@
             restoreActiveTaskUI();
         }
 
-        /**
-         * STRETCH-SICHER: Beim Stoppen wird der laufende Timer sofort angehalten!
-         * Die Endzeit und Dauer werden fest eingefroren und in pendingStopEntry hinterlegt.
-         */
         function prepareStopTaskData(taskToStop) {
             if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
             const endTime = new Date();
@@ -1101,7 +1130,7 @@
         }
 
         // ==========================================================
-        // WECHSEL-LOGIK AUS v2.9.5 (FENSTER 1, FENSTER 2, FENSTER 3)
+        // WECHSEL-LOGIK (FENSTER 1, FENSTER 2, FENSTER 3)
         // ==========================================================
         function setupSwitchWindow1(newTaskMasterEntry) {
             clearAllModalIntervals();
@@ -1176,6 +1205,8 @@
                 logs.push(pendingStopEntry);
                 localStorage.setItem('zf_logs', JSON.stringify(logs));
                 updateLogUI();
+                // ➔ NEU: Automatisch zu Google Sheets senden
+                sendTaskLogToGoogleSheets(pendingStopEntry);
             }
 
             currentTask = pendingSwitchTask2;
@@ -1232,6 +1263,8 @@
                 logs.push(pendingStopEntry);
                 localStorage.setItem('zf_logs', JSON.stringify(logs));
                 updateLogUI();
+                // ➔ NEU: Automatisch zu Google Sheets senden
+                sendTaskLogToGoogleSheets(pendingStopEntry);
                 pendingStopEntry = null;
             }
 
@@ -1266,7 +1299,7 @@
         }
 
         // ==========================================================
-        // STANDARD-MODALE: START & STOPP (v2.9.5 ORIGINAL)
+        // STANDARD-MODALE: START & STOPP
         // ==========================================================
         function openStartModal(dataObj, codeId, modeType) {
             clearAllModalIntervals();
@@ -1336,7 +1369,6 @@
             document.getElementById('floating-top-action-icon').textContent = '🟢';
             document.getElementById('floating-top-action-text').textContent = 'Tätigkeit buchen';
 
-            // Fest eingefrorene Gesamtdauer anzeigen!
             if (pendingStopEntry) {
                 document.getElementById('floating-time-display').textContent = formatTime(pendingStopEntry.durationSec);
             }
@@ -1359,17 +1391,12 @@
 
                 if (remaining <= 0) {
                     clearAllModalIntervals();
-                    // AUTO-BUCHUNG BEI TIMEOUT: Tätigkeit wird sicher gebucht & Zeit gestoppt!
                     confirmAndBookStoppedTask();
                     tryCloseBrowserWindow();
                 }
             }, 100);
         }
 
-        /**
-         * STRETCH-SICHER: Bucht die gestoppte Tätigkeit final ab.
-         * Garantiert: currentTask = null, zf_active_task gelöscht, Timer gestoppt!
-         */
         function confirmAndBookStoppedTask() {
             clearAllModalIntervals();
 
@@ -1379,6 +1406,8 @@
                 logs.push(pendingStopEntry);
                 localStorage.setItem('zf_logs', JSON.stringify(logs));
                 updateLogUI();
+                // ➔ NEU: Automatisch zu Google Sheets senden
+                sendTaskLogToGoogleSheets(pendingStopEntry);
                 pendingStopEntry = null;
             }
 
