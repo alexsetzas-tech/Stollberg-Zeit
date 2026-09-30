@@ -120,7 +120,7 @@
 
             <!-- Subtiler Geräte-Statusbalken (Cooldown & Vorlese-Status) -->
             <div class="flex justify-between items-center text-[10px] text-slate-400 font-mono mt-1 pt-1 border-t border-slate-800">
-                <span>DEV-5V0V79P54</span>
+                <span id="header-status-dev-id">DEV-OFFEN</span>
                 <div class="flex items-center space-x-2 text-amber-300">
                     <span id="tts-header-indicator" class="hidden text-emerald-400 font-bold">🔊 Stimme: An</span>
                     <span id="cooldown-header-indicator">Fenster: 10s</span>
@@ -182,6 +182,38 @@
             </div>
         </main>
 
+        <!-- ==========================================================================
+             NEUES AUTH-MODAL: PERSONAL- / GERÄTE-ID ABFRAGE [SCR-AUTH]
+             ========================================================================== -->
+        <div id="auth-modal" class="fixed inset-0 bg-slate-950/90 z-[350] flex items-center justify-center p-4 backdrop-blur-md hidden">
+            <div class="c64-modal bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-2 border-blue-500 text-center flex flex-col items-center">
+                <div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl mb-3 shadow-inner">
+                    👤
+                </div>
+                <h3 class="text-lg font-black text-slate-900 mb-1 leading-snug">Personal- / Geräte-ID</h3>
+                <p class="text-xs text-slate-500 mb-4 leading-relaxed">
+                    Für dieses Gerät ist noch keine Kennung hinterlegt.<br>
+                    <strong>Die Zeit läuft im Hintergrund ab Scan-Sekunde!</strong><br>
+                    Bitte gib deine Nummer oder Kennung ein:
+                </p>
+                <div class="w-full mb-3 text-left">
+                    <input type="text" id="auth-input-id" 
+                           placeholder="z. B. MA-104, Alex_2026, #42..." 
+                           class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-blue-500 focus:outline-none font-mono text-sm font-bold text-slate-800 bg-slate-50"
+                           onkeydown="if(event.key==='Enter') confirmAuthDeviceId()">
+                    <div id="auth-error-msg" class="hidden text-[11px] text-red-600 font-bold mt-1.5 ml-1">
+                        ⚠️ Bitte gib eine gültige Kennung ein.
+                    </div>
+                </div>
+                <button type="button" onclick="confirmAuthDeviceId()" class="c64-btn w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black py-3 rounded-xl shadow-lg text-sm transition-all border border-blue-500">
+                    💾 Kennung speichern & fortfahren
+                </button>
+                <p class="text-[10px] text-slate-400 mt-3">
+                    Erlaubt: Zahlen, Buchstaben & Sonderzeichen. Bleibt dauerhaft auf diesem Gerät gespeichert.
+                </p>
+            </div>
+        </div>
+
         <!-- EINSTELLUNGEN & SKIN-MENÜ (3 WEISSE PUNKTE) -->
         <div id="settings-menu-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[250] flex items-center justify-center p-4 hidden">
             <div class="c64-modal bg-white w-full max-w-sm rounded-2xl shadow-2xl p-5 border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
@@ -195,6 +227,17 @@
                     <button onclick="toggleSettingsMenu()" class="text-slate-400 hover:text-slate-700 text-xl font-bold p-1">
                         ✕
                     </button>
+                </div>
+
+                <!-- EINSTELLUNG 0: GERÄTE- / PERSONALNUMMER EDITIEREN -->
+                <div class="space-y-1.5 pb-2 border-b border-slate-200">
+                    <label class="text-xs font-black uppercase text-slate-700 flex items-center justify-between">
+                        <span>👤 Personal- / Geräte-ID</span>
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="text" id="menu-device-id-input" class="w-full text-xs font-mono font-bold px-2.5 py-1.5 rounded-lg border border-slate-300 bg-slate-50 text-slate-800" placeholder="Kennung eingeben">
+                        <button type="button" onclick="saveDeviceIdFromMenu()" class="c64-btn bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg">Speichern</button>
+                    </div>
                 </div>
 
                 <!-- EINSTELLUNG 1: ANZEIGEDAUER (COOLDOWN) -->
@@ -248,7 +291,7 @@
                     </div>
 
                     <p class="text-[11px] text-slate-500 leading-snug">
-                        Liest alle Fenster (Start, Stopp, Wechsel und Quittungen) verständlich mit einer freundlichen Stimme vor.
+                        Liest alle Fenster verständlich mit einer freundlichen Stimme vor.
                     </p>
 
                     <div class="grid grid-cols-2 gap-2 pt-1">
@@ -466,10 +509,6 @@
         const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwsq3yebm8gr5Iuixh8fjWAmHzui2h9LcvzPVqHEJi-KrDEwvQj32u4Bc64saRfuUhO8A/exec";
         const GOOGLE_SHEET_TOKEN = "BTZ-Projekt-2026-Geheim";
 
-        /**
-         * Sendet einen Eintrag an Google Sheets mit 'keepalive: true' (überlebt Fenster-Schließen)
-         * und verwaltet eine lokale Warteschlange, damit kein Log verloren geht.
-         */
         function sendTaskLogToGoogleSheets(entry) {
             if (!entry) return;
             if (!GOOGLE_SHEET_URL || GOOGLE_SHEET_URL.includes("HIER_DEINE_WEB_APP_URL")) return;
@@ -512,9 +551,6 @@
             }
         }
 
-        /**
-         * Prüft beim Start der App, ob noch nicht übertragene Logs nachgereicht werden müssen
-         */
         function syncPendingLogs() {
             if (!navigator.onLine || !logs || logs.length === 0) return;
             logs.forEach(log => {
@@ -533,7 +569,6 @@
         let currentSkin = localStorage.getItem('zf_app_skin') || 'modern';
         let isTtsActive = localStorage.getItem('zf_tts_active') === 'true';
 
-        // BroadcastChannel für sofortige tab-übergreifende Schließ-Signale
         const appBroadcast = ('BroadcastChannel' in window) ? new BroadcastChannel('zf_app_channel') : null;
         if (appBroadcast) {
             appBroadcast.onmessage = function(e) {
@@ -546,18 +581,16 @@
         let masterData = []; 
         let logs = []; 
         let html5QrcodeScanner = null;
-        let deviceId = "";
+        let deviceId = ""; // Wird durch Benutzer-Kennung belegt
         let currentTask = null; 
         let timerInterval = null;
         const levelColors = ['#3498db', '#e67e22', '#9b59b6', '#16a085'];
 
-        // Status-Variablen für das Floating Modal
         let floatingTimerInterval = null;
         let floatingLiveTimerInterval = null;
         let switchF2TimerInterval = null;
         let timeoutLiveTimerInterval = null;
 
-        // Aktueller Zustand des Modals: 'start', 'stop', 'switch_f1', 'switch_f2', 'switch_f3'
         let currentModalMode = 'start'; 
         let pendingStopEntry = null;
         let pendingSwitchTask2 = null;
@@ -674,7 +707,6 @@
         window.onload = function() {
             setTimeout(initApp, 30);
 
-            // Tab-Synchronisation
             window.addEventListener('storage', function(e) {
                 if (e.key === 'zf_active_task') {
                     if (!e.newValue) {
@@ -713,13 +745,14 @@
 
         async function initApp() {
             try {
-                deviceId = localStorage.getItem('zeiterfassung_device_id') || localStorage.getItem('zf_device_id');
-                if (!deviceId) {
-                    deviceId = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-                    localStorage.setItem('zeiterfassung_device_id', deviceId);
-                    localStorage.setItem('zf_device_id', deviceId);
+                // 1. Kennung laden oder Benutzerabfrage starten
+                deviceId = localStorage.getItem('zeiterfassung_device_id') || localStorage.getItem('zf_device_id') || '';
+                
+                if (deviceId) {
+                    updateDeviceIdUI(deviceId);
+                } else {
+                    openAuthModal();
                 }
-                document.getElementById('device-id-display').textContent = `Geräte-ID: ${deviceId}`;
 
                 applySkin(currentSkin);
                 initSettingsUI();
@@ -755,6 +788,75 @@
             }
         }
 
+        // ==========================================================
+        // AUTH-MODAL LOGIK (PERSONAL- / GERÄTE-ID) [SCR-AUTH]
+        // ==========================================================
+        function openAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                const input = document.getElementById('auth-input-id');
+                if (input) {
+                    input.value = deviceId || '';
+                    setTimeout(() => input.focus(), 150);
+                }
+            }
+        }
+
+        function confirmAuthDeviceId() {
+            const input = document.getElementById('auth-input-id');
+            const err = document.getElementById('auth-error-msg');
+            if (!input) return;
+            const val = input.value.trim();
+            if (!val) {
+                if (err) err.classList.remove('hidden');
+                return;
+            }
+            if (err) err.classList.add('hidden');
+
+            deviceId = val;
+            localStorage.setItem('zeiterfassung_device_id', deviceId);
+            localStorage.setItem('zf_device_id', deviceId);
+            updateDeviceIdUI(deviceId);
+
+            if (pendingStopEntry && !pendingStopEntry.deviceId) {
+                pendingStopEntry.deviceId = deviceId;
+            }
+
+            const modal = document.getElementById('auth-modal');
+            if (modal) modal.classList.add('hidden');
+
+            showMessage(`✅ Kennung „${deviceId}“ gespeichert.`, "success");
+            speakText(`Kennung ${deviceId} gespeichert.`);
+        }
+
+        function saveDeviceIdFromMenu() {
+            const input = document.getElementById('menu-device-id-input');
+            if (!input) return;
+            const val = input.value.trim();
+            if (!val) {
+                showMessage("Bitte eine Kennung eingeben!", "error");
+                return;
+            }
+            deviceId = val;
+            localStorage.setItem('zeiterfassung_device_id', deviceId);
+            localStorage.setItem('zf_device_id', deviceId);
+            updateDeviceIdUI(deviceId);
+            showMessage(`✅ Kennung auf „${deviceId}“ geändert.`, "success");
+        }
+
+        function updateDeviceIdUI(id) {
+            const display = document.getElementById('device-id-display');
+            if (display) display.textContent = `Geräte-ID: ${id}`;
+            const headerSub = document.getElementById('header-status-dev-id');
+            if (headerSub) headerSub.textContent = id;
+            const menuInput = document.getElementById('menu-device-id-input');
+            if (menuInput) menuInput.value = id;
+        }
+
+        // ==========================================================
+        // MENÜ- & EINSTELLUNGEN
+        // ==========================================================
         function toggleSettingsMenu() {
             const modal = document.getElementById('settings-menu-modal');
             if (modal) modal.classList.toggle('hidden');
@@ -765,6 +867,8 @@
             if (slider) slider.value = cooldownSeconds;
             highlightCooldownChip(cooldownSeconds);
             updateSkinButtonsUI(currentSkin);
+            const menuInput = document.getElementById('menu-device-id-input');
+            if (menuInput && deviceId) menuInput.value = deviceId;
         }
 
         function setCooldownSeconds(sec) {
@@ -992,6 +1096,12 @@
         }
 
         function startQrScanner() {
+            if (!deviceId) {
+                showMessage("🛑 Bitte zuerst Personalnummer eingeben!", "error");
+                openAuthModal();
+                return;
+            }
+
             if (isStorageLockActive()) {
                 triggerScanBlockedFeedback();
                 return;
@@ -1074,6 +1184,14 @@
         // HAUPT-VERARBEITUNG VON SCANS
         // ==========================================================
         function processScannedId(scannedText, lockAlreadyClaimed) {
+            // Scan-Sperre solange keine Kennung vorliegt
+            if (!deviceId && currentTask) {
+                triggerScanBlockedFeedback();
+                showMessage("🛑 Scan gesperrt! Bitte erst Personalnummer eingeben.", "error");
+                openAuthModal();
+                return;
+            }
+
             if (!lockAlreadyClaimed && isStorageLockActive()) {
                 triggerScanBlockedFeedback();
                 return;
@@ -1088,12 +1206,10 @@
                 return;
             }
 
-            // Mindestlaufzeit-Prüfung gegen Prellen bei gleichem Code
             if (currentTask && currentTask.id === scannedId) {
                 const elapsedSec = (Date.now() - new Date(currentTask.startTime).getTime()) / 1000;
-                
                 if (elapsedSec < 3) {
-                    console.warn(`🛑 Prellschutz aktiv: Tätigkeit läuft erst seit ${Math.round(elapsedSec)}s. Stopp abgewiesen.`);
+                    console.warn(`🛑 Prellschutz aktiv: Tätigkeit läuft erst seit ${Math.round(elapsedSec)}s.`);
                     triggerScanBlockedFeedback();
                     return;
                 }
@@ -1105,20 +1221,22 @@
 
             if (currentTask) {
                 if (currentTask.id === scannedId) {
-                    // FALL A: Selber Code nochmal -> Reguläres Stopp-Fenster
                     currentModalMode = 'stop';
                     prepareStopTaskData(currentTask);
                     openStopModal(currentTask.dataObj, currentTask.id);
                 } else {
-                    // FALL B: Neuer Code gescannt -> TÄTIGKEITSWECHSEL FENSTER 1
                     currentModalMode = 'switch_f1';
                     setupSwitchWindow1(masterEntry);
                 }
             } else {
-                // FALL C: Keine aktive Tätigkeit -> Neu starten
                 currentModalMode = 'start';
                 startTask(masterEntry);
                 openStartModal(masterEntry, masterEntry.id, 'start');
+            }
+
+            // Falls die Kennung beim allerersten Scan noch fehlte: jetzt sofort das Eingabefenster einblenden
+            if (!deviceId) {
+                openAuthModal();
             }
         }
 
@@ -1217,6 +1335,7 @@
             clearAllModalIntervals();
 
             if (pendingStopEntry) {
+                pendingStopEntry.deviceId = deviceId || pendingStopEntry.deviceId;
                 logs.push(pendingStopEntry);
                 localStorage.setItem('zf_logs', JSON.stringify(logs));
                 updateLogUI();
@@ -1274,6 +1393,7 @@
             clearAllModalIntervals();
 
             if (pendingStopEntry) {
+                pendingStopEntry.deviceId = deviceId || pendingStopEntry.deviceId;
                 logs.push(pendingStopEntry);
                 localStorage.setItem('zf_logs', JSON.stringify(logs));
                 updateLogUI();
@@ -1416,6 +1536,7 @@
             const bookedTitle = pendingStopEntry ? getFullTaskText(pendingStopEntry.dataObj, pendingStopEntry.id) : '';
 
             if (pendingStopEntry) {
+                pendingStopEntry.deviceId = deviceId || pendingStopEntry.deviceId;
                 logs.push(pendingStopEntry);
                 localStorage.setItem('zf_logs', JSON.stringify(logs));
                 updateLogUI();
@@ -1607,7 +1728,8 @@
             csv += "\n";
 
             parsedLogs.forEach(log => {
-                let row = `${log.deviceId};${log.id};${log.startDate};${log.startTime};${log.endTime};${log.durationSec}`;
+                const safeDev = (log.deviceId || '').includes(';') ? `"${log.deviceId}"` : (log.deviceId || '');
+                let row = `${safeDev};${log.id};${log.startDate};${log.startTime};${log.endTime};${log.durationSec}`;
                 log.descArray.forEach(desc => row += `;${desc.includes(';') ? `"${desc}"` : desc}`);
                 for (let i = 0; i < maxCols - log.descArray.length; i++) row += `;`;
                 csv += row + "\n";
