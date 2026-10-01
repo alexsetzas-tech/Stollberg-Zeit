@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=5.0, user-scalable=yes">
-    <title>⏱️ Zeit-Scanner v2.9.8 Pro</title>
+    <title>⏱️️ Zeit-Scanner v2.9.8 Pro</title>
 
     <!-- Web-App Fähigkeiten für Standalone-Betrieb auf Mobilgeräten -->
     <meta name="mobile-web-app-capable" content="yes">
@@ -59,7 +59,7 @@
             border-bottom: 3px solid #facc15 !important;
         }
 
-        /* 1. Karten, Modale & Container mit Arcade-Gelb Rahmen */
+        /* Karten & Modale */
         body.skin-c64 .c64-card {
             background-color: #141a52 !important;
             border: 2px solid #facc15 !important;
@@ -74,7 +74,7 @@
             box-shadow: 6px 6px 0px #000000, 0 0 25px rgba(250, 204, 21, 0.3) !important;
         }
 
-        /* 2. Zwanghafte Übersteuerung aller dunklen Tailwind-Textfarben */
+        /* Alle dunklen Textelemente hart auf Weiß übersteuern */
         body.skin-c64 .text-slate-900,
         body.skin-c64 .text-slate-800,
         body.skin-c64 .text-slate-700,
@@ -87,7 +87,7 @@
             color: #93c5fd !important; /* Helles Retro-Cyan für Sekundärtexte */
         }
 
-        /* 3. Überschriften, Banner & Badges in leuchtendem Arcade-Gelb */
+        /* Überschriften, Banner, Labels in Arcade-Gelb */
         body.skin-c64 h1,
         body.skin-c64 h2,
         body.skin-c64 h3,
@@ -97,7 +97,7 @@
             text-shadow: 1px 1px 0px #000000;
         }
 
-        /* 4. Große Ziffern & Timer: Strahlendes Cyber-Cyan (gestochen scharf) */
+        /* Ziffern & Timer: Leuchtendes Cyber-Cyan */
         body.skin-c64 #active-time,
         body.skin-c64 #floating-time-display,
         body.skin-c64 #timeout-task2-time {
@@ -106,7 +106,6 @@
             border-bottom: 2px solid #28347a !important;
         }
 
-        /* 5. Dynamische Tätigkeitsbeschreibungen & Boxen */
         body.skin-c64 #floating-task-title,
         body.skin-c64 #confirm-task-title,
         body.skin-c64 #timeout-task2-title {
@@ -119,7 +118,6 @@
             border-color: #facc15 !important;
         }
 
-        /* 6. Code-Badges & Eingabefelder */
         body.skin-c64 #floating-code-display,
         body.skin-c64 #active-id,
         body.skin-c64 .bg-slate-100 {
@@ -134,7 +132,6 @@
             color: #ffffff !important;
         }
 
-        /* 7. Arbeitszeit-Liste Historie */
         body.skin-c64 #log-list li {
             background-color: #171e59 !important;
             border: 1px solid #3b4890 !important;
@@ -147,13 +144,12 @@
             color: #fde047 !important;
         }
 
-        /* 8. Buttons nach Katakis-Vorbild: Arcade-Gelb mit schwarzer Schrift */
         body.skin-c64 .c64-btn {
             border: 2px solid #facc15 !important;
             box-shadow: 2px 2px 0px #000000 !important;
         }
 
-        /* Haupt-Aktionsbutton (🟢 Tätigkeit buchen / Export) */
+        /* Haupt-Aktionsbuttons: Arcade-Gelb mit fetter schwarzer Schrift */
         body.skin-c64 #floating-top-action-btn,
         body.skin-c64 button.bg-emerald-600,
         body.skin-c64 button.bg-green-600 {
@@ -171,8 +167,30 @@
         /* Abbrechen-Button im Katakis-Skin */
         body.skin-c64 #floating-cancel-btn {
             background-color: #1c2357 !important;
-            border: 1px solid #64748b !important;
+            border: 2px solid #94a3b8 !important;
             color: #ffffff !important;
+            font-weight: 700 !important;
+        }
+        body.skin-c64 #floating-cancel-btn:hover {
+            background-color: #28347a !important;
+        }
+
+        body.skin-c64 #floating-pause-btn {
+            background-color: #1d4ed8 !important;
+            border: 2px solid #60a5fa !important;
+            color: #ffffff !important;
+        }
+
+        body.skin-c64 #floating-progress-container {
+            background-color: #0b0e33 !important;
+            border-color: #facc15 !important;
+        }
+        body.skin-c64 #floating-progress-bar {
+            background-color: rgba(244, 63, 94, 0.6) !important;
+        }
+        body.skin-c64 #floating-lock-label,
+        body.skin-c64 #confirm-timer-label {
+            color: #fde047 !important;
         }
     </style>
 </head>
@@ -279,9 +297,7 @@
             </div>
         </main>
 
-        <!-- ==========================================================================
-             NEUES AUTH-MODAL: PERSONAL- / GERÄTE-ID ABFRAGE [SCR-AUTH]
-             ========================================================================== -->
+        <!-- AUTH-MODAL: PERSONAL- / GERÄTE-ID ABFRAGE [SCR-AUTH] -->
         <div id="auth-modal" class="fixed inset-0 bg-slate-950/90 z-[350] flex items-center justify-center p-4 backdrop-blur-md hidden">
             <div class="c64-modal bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-2 border-blue-500 text-center flex flex-col items-center">
                 <div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl mb-3 shadow-inner">
@@ -311,7 +327,7 @@
             </div>
         </div>
 
-        <!-- EINSTELLUNGEN & SKIN-MENÜ (3 WEISSE PUNKTE) -->
+        <!-- EINSTELLUNGEN & SKIN-MENÜ (3 WEISSE PUNKTE) [SCR-SET] -->
         <div id="settings-menu-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[250] flex items-center justify-center p-4 hidden">
             <div class="c64-modal bg-white w-full max-w-sm rounded-2xl shadow-2xl p-5 border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
                 
@@ -425,7 +441,7 @@
                         </button>
 
                         <button type="button" id="skin-btn-c64" onclick="setSkin('c64')" 
-                                class="p-2.5 rounded-xl border-2 text-left transition flex flex-col justify-between bg-slate-900 border-purple-500 text-purple-200">
+                                class="p-2.5 rounded-xl border-2 text-left transition flex flex-col justify-between bg-slate-900 border-amber-400 text-amber-300">
                             <span class="text-xs font-black text-amber-300">🕹️ C64 Retro</span>
                             <span class="text-[10px] text-slate-300 mt-1">Katakis 80s Flair</span>
                         </button>
@@ -446,7 +462,7 @@
         <div id="floating-modal" class="fixed inset-0 bg-slate-950/85 z-[200] hidden flex items-center justify-center p-4 backdrop-blur-md transition-all">
             <div class="c64-modal bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border-2 border-emerald-500 text-center flex flex-col items-center">
                 
-                <!-- ANSICHT 1: STANDARD (Start, Stopp, Wechsel F1, Wechsel F3) -->
+                <!-- ANSICHT 1: STANDARD (Start SCR-01, Stopp SCR-03, Wechsel F1 SCR-05, Wechsel F3 SCR-07) -->
                 <div id="modal-standard-view" class="w-full flex flex-col items-center">
                     
                     <!-- Status & Badge oben für Start (oder F3) -->
@@ -484,7 +500,7 @@
                         <span>Pause</span>
                     </button>
 
-                    <!-- Abbrechen-Button (Grau) -->
+                    <!-- Abbrechen-Button (Grau / im C64 Dark-Blue) -->
                     <button id="floating-cancel-btn" onclick="handleFloatingCancel()" class="w-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold py-2.5 px-4 rounded-xl border border-slate-300 flex items-center justify-center gap-2 text-xs transition-all shadow-sm my-1">
                         <span id="floating-cancel-icon">✕</span>
                         <span id="floating-cancel-text">Abbrechen (Buchung verwerfen)</span>
@@ -500,7 +516,7 @@
                     </div>
                 </div>
 
-                <!-- ANSICHT 2: FENSTER 2 BEI WECHSEL -->
+                <!-- ANSICHT 2: FENSTER 2 BEI WECHSEL (SCR-06) -->
                 <div id="modal-switch-confirm-view" class="w-full flex flex-col items-center hidden py-1">
                     <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mb-2.5 shadow-inner">
                         ✓
@@ -531,7 +547,7 @@
                     </div>
                 </div>
 
-                <!-- ANSICHT 3: TIMEOUT-STANDBY BEI WECHSEL -->
+                <!-- ANSICHT 3: TIMEOUT-STANDBY BEI WECHSEL (SCR-09) -->
                 <div id="modal-switch-timeout-view" class="w-full flex flex-col items-center hidden py-1">
                     <div class="inline-flex items-center gap-1.5 bg-blue-100 text-blue-800 text-xs px-3.5 py-1.5 rounded-full font-bold mb-3 border border-blue-300">
                         <span>ℹ️ Tätigkeit automatisch gebucht</span>
@@ -553,7 +569,7 @@
 
                     <div class="w-full space-y-2 mb-1">
                         <button type="button" class="c64-btn w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 text-xs md:text-sm transition-all border border-blue-500">
-                            <span>⏸</span>
+                            <span>⏸️</span>
                             <span>Pause</span>
                         </button>
                         <button onclick="resumeTask2StartWindow()" class="c64-btn w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-sm transition-all border border-emerald-500">
@@ -566,7 +582,7 @@
             </div>
         </div>
 
-        <!-- Custom Lösch-Bestätigung -->
+        <!-- Custom Lösch-Bestätigung [SCR-DEL] -->
         <div id="delete-modal" class="fixed inset-0 bg-slate-900/60 z-[300] hidden flex items-center justify-center p-4 backdrop-blur-xs">
             <div class="c64-modal bg-white rounded-2xl p-5 max-w-xs w-full shadow-2xl text-center">
                 <div class="text-3xl mb-2">🗑️</div>
@@ -678,7 +694,7 @@
         let masterData = []; 
         let logs = []; 
         let html5QrcodeScanner = null;
-        let deviceId = ""; // Wird durch Benutzer-Kennung belegt
+        let deviceId = "";
         let currentTask = null; 
         let timerInterval = null;
         const levelColors = ['#3498db', '#e67e22', '#9b59b6', '#16a085'];
@@ -842,7 +858,6 @@
 
         async function initApp() {
             try {
-                // 1. Kennung laden oder Benutzerabfrage starten
                 deviceId = localStorage.getItem('zeiterfassung_device_id') || localStorage.getItem('zf_device_id') || '';
                 
                 if (deviceId) {
@@ -952,7 +967,7 @@
         }
 
         // ==========================================================
-        // MENÜ- & EINSTELLUNGEN
+        // MENÜ- & EINSTELLUNGEN [SCR-SET]
         // ==========================================================
         function toggleSettingsMenu() {
             const modal = document.getElementById('settings-menu-modal');
@@ -1045,6 +1060,9 @@
             }
         }
 
+        // ==========================================================
+        // BARRIEREFREIHEIT: SPRACHAUSGABE (TTS)
+        // ==========================================================
         function setTTS(active) {
             isTtsActive = active;
             localStorage.setItem('zf_tts_active', active ? 'true' : 'false');
@@ -1083,7 +1101,7 @@
         }
 
         function testVoiceOutput() {
-            speakText("Dies ist eine Sprechprobe für die barrierefreie Zeiterfassung. Alle Anzeigen werden klar und freundlich vorgelesen.", true);
+            speakText("Dies ist eine Sprechprobe für die barrierefreie Zeiterfassung. Alle Anzeigen und Abbrechen-Optionen werden klar vorgelesen.", true);
         }
 
         function speakText(text, forceTest = false) {
@@ -1281,7 +1299,6 @@
         // HAUPT-VERARBEITUNG VON SCANS
         // ==========================================================
         function processScannedId(scannedText, lockAlreadyClaimed) {
-            // Scan-Sperre solange keine Kennung vorliegt
             if (!deviceId && currentTask) {
                 triggerScanBlockedFeedback();
                 showMessage("🛑 Scan gesperrt! Bitte erst Personalnummer eingeben.", "error");
@@ -1331,7 +1348,6 @@
                 openStartModal(masterEntry, masterEntry.id, 'start');
             }
 
-            // Falls die Kennung beim allerersten Scan noch fehlte: jetzt sofort das Eingabefenster einblenden
             if (!deviceId) {
                 openAuthModal();
             }
@@ -1360,7 +1376,7 @@
         }
 
         // ==========================================================
-        // WECHSEL-LOGIK (FENSTER 1, FENSTER 2, FENSTER 3)
+        // WECHSEL-LOGIK (SCR-05, SCR-06, SCR-07)
         // ==========================================================
         function setupSwitchWindow1(newTaskMasterEntry) {
             clearAllModalIntervals();
@@ -1407,7 +1423,9 @@
             document.getElementById('floating-modal').classList.remove('hidden');
             updateModalProgressBar();
 
+            // Vorlese-Ansage für SCR-05 mit Abbruch-Hinweis
             speakText(`Tätigkeitswechsel. Möchten Sie ${task1Text} buchen und zu ${newTaskMasterEntry.t1 || newTaskMasterEntry.id} wechseln? Drücken Sie Abbrechen zum Stornieren.`);
+
             floatingTimerInterval = setInterval(() => {
                 const remaining = getRemainingLockSeconds();
                 updateModalProgressBar();
@@ -1528,7 +1546,7 @@
         }
 
         // ==========================================================
-        // STANDARD-MODALE: START & STOPP
+        // STANDARD-MODALE: START (SCR-01 / SCR-07) & STOPP (SCR-03)
         // ==========================================================
         function openStartModal(dataObj, codeId, modeType) {
             clearAllModalIntervals();
@@ -1568,11 +1586,13 @@
             updateModalProgressBar();
             document.getElementById('floating-modal').classList.remove('hidden');
 
-if (currentModalMode === 'switch_f3') {
-    speakText(`Laufende Tätigkeit zwei gestartet: ${fullTitle}. Zum Verwerfen Abbrechen drücken.`);
-} else {
-    speakText(`Laufende Tätigkeit gestartet: ${fullTitle}. Zum Verwerfen Abbrechen drücken.`);
-}
+            // Vorlese-Ansage für SCR-01 und SCR-07
+            if (currentModalMode === 'switch_f3') {
+                speakText(`Laufende Tätigkeit zwei gestartet: ${fullTitle}. Zum Verwerfen Abbrechen drücken.`);
+            } else {
+                speakText(`Laufende Tätigkeit gestartet: ${fullTitle}. Zum Verwerfen Abbrechen drücken.`);
+            }
+
             floatingTimerInterval = setInterval(() => {
                 const remaining = getRemainingLockSeconds();
                 updateModalProgressBar();
@@ -1614,8 +1634,10 @@ if (currentModalMode === 'switch_f3') {
             updateModalProgressBar();
             document.getElementById('floating-modal').classList.remove('hidden');
 
+            // Vorlese-Ansage für SCR-03 mit Abbruch-Option
             const spokenDuration = pendingStopEntry ? formatDurationForSpeech(pendingStopEntry.durationSec) : '';
             speakText(`Tätigkeit beenden: ${fullTitle}. Bisherige Dauer: ${spokenDuration}. Drücken Sie auf Tätigkeit buchen, oder auf Abbrechen zum Verwerfen.`);
+
             floatingTimerInterval = setInterval(() => {
                 const remaining = getRemainingLockSeconds();
                 updateModalProgressBar();
@@ -1657,7 +1679,7 @@ if (currentModalMode === 'switch_f3') {
         }
 
         // ==========================================================
-        // ABBRECHEN-LOGIK (ZENTRAL)
+        // ABBRECHEN-LOGIK (SCR-BTN-CANCEL AUF SCR-01, SCR-03, SCR-05, SCR-07)
         // ==========================================================
         function handleFloatingCancel() {
             clearAllModalIntervals();
@@ -1669,7 +1691,7 @@ if (currentModalMode === 'switch_f3') {
                 pendingSwitchTask2 = null;
                 pendingStopEntry = null;
 
-                dismissFloatingModal();
+                dismissFloatingModal(); // Löst Prellschutz-Lock sofort
                 showMessage("↩️ Wechsel storniert. Vorherige Tätigkeit läuft weiter.", "info");
                 speakText("Wechsel storniert. Bisherige Tätigkeit läuft weiter.");
                 return;
@@ -1687,7 +1709,7 @@ if (currentModalMode === 'switch_f3') {
             localStorage.removeItem('zf_active_task');
             document.getElementById('active-task-section').classList.add('hidden');
 
-            dismissFloatingModal();
+            dismissFloatingModal(); // Löst Prellschutz-Lock sofort
 
             // 2. SCR-03: STOPP ABBRECHEN
             if (modeAtCancel === 'stop') {
@@ -1701,12 +1723,13 @@ if (currentModalMode === 'switch_f3') {
             } 
             // 4. SCR-01: START ABBRECHEN
             else {
-                showMessage("↩️ Buchung verworfen. Keine Zeit erfasst.", "success");
+                showMessage("↩️ Start abgebrochen. Keine Zeit erfasst.", "success");
                 speakText("Start abgebrochen. Keine Zeit erfasst.");
             }
 
             tryCloseBrowserWindow();
         }
+
         function updateModalProgressBar() {
             const bar = document.getElementById('floating-progress-bar');
             if (!bar) return;
@@ -1731,7 +1754,6 @@ if (currentModalMode === 'switch_f3') {
             try {
                 window.close();
             } catch(e) {}
-            showMessage("✅ Gespeichert. Smartphone kann gesperrt werden.", "success");
         }
 
         function closeAllAppWindows() {
