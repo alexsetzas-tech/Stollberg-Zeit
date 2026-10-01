@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=5.0, user-scalable=yes">
-    <title>⏱️️ Zeit-Scanner v2.9.8 Pro</title>
+    <title>⏱️ Zeit-Scanner v2.9.8 Pro</title>
 
     <!-- Web-App Fähigkeiten für Standalone-Betrieb auf Mobilgeräten -->
     <meta name="mobile-web-app-capable" content="yes">
@@ -84,7 +84,7 @@
 
         body.skin-c64 .text-slate-500,
         body.skin-c64 .text-slate-400 {
-            color: #93c5fd !important; /* Helles Retro-Cyan für Sekundärtexte */
+            color: #93c5fd !important;
         }
 
         /* Überschriften, Banner, Labels in Arcade-Gelb */
@@ -149,7 +149,7 @@
             box-shadow: 2px 2px 0px #000000 !important;
         }
 
-        /* Haupt-Aktionsbuttons: Arcade-Gelb mit fetter schwarzer Schrift */
+        /* Haupt-Aktionsbuttons: Arcade-Gelb */
         body.skin-c64 #floating-top-action-btn,
         body.skin-c64 button.bg-emerald-600,
         body.skin-c64 button.bg-green-600 {
@@ -164,7 +164,6 @@
             background-color: #fde047 !important;
         }
 
-        /* Abbrechen-Button im Katakis-Skin */
         body.skin-c64 #floating-cancel-btn {
             background-color: #1c2357 !important;
             border: 2px solid #94a3b8 !important;
@@ -262,7 +261,7 @@
                 </button>
             </div>
 
-            <!-- Aktive Tätigkeit (Timer) in der Normalansicht (v2.9.5 Layout) -->
+            <!-- Aktive Tätigkeit (Timer) in der Normalansicht -->
             <div id="active-task-section" class="hidden c64-card bg-white rounded-xl shadow-lg border-2 border-green-400 p-5 mb-5 text-center pulsing">
                 <div class="text-xs font-bold text-green-600 uppercase tracking-wider mb-2">▶ Laufende Tätigkeit</div>
                 <div id="active-time" class="text-4xl font-mono font-bold text-slate-800 mb-3 border-b border-slate-100 pb-3">00:00:00</div>
@@ -271,7 +270,7 @@
                 <div class="mt-4 text-[11px] text-slate-400">Scanne diesen Code erneut, um zu stoppen,<br>oder einen neuen, um direkt zu wechseln.</div>
             </div>
 
-            <!-- Historie & Log: Arbeitszeit Liste (v2.9.5 Layout) -->
+            <!-- Historie & Log: Arbeitszeit Liste -->
             <div class="c64-card bg-white rounded-xl shadow-md border border-slate-100 p-4">
                 <div class="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
                     <h3 class="font-bold text-slate-800 text-base">Arbeitszeit Liste</h3>
@@ -368,7 +367,6 @@
                         Bestimmt die Anzeigedauer der Fenster und die Scan-Sperre (5 Sek. bis 5 Min.).
                     </p>
 
-                    <!-- Schnellauswahl-Chips -->
                     <div class="grid grid-cols-3 gap-1.5 pt-1">
                         <button type="button" onclick="setCooldownSeconds(5)" class="cooldown-chip py-1.5 text-[11px] font-bold rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 transition" data-sec="5">5 Sek.</button>
                         <button type="button" onclick="setCooldownSeconds(10)" class="cooldown-chip py-1.5 text-[11px] font-bold rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 transition" data-sec="10">10 Sek.</button>
@@ -378,7 +376,6 @@
                         <button type="button" onclick="setCooldownSeconds(300)" class="cooldown-chip py-1.5 text-[11px] font-bold rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 transition" data-sec="300">5 Min.</button>
                     </div>
 
-                    <!-- Stufenloser Schieberegler -->
                     <div class="pt-1.5">
                         <input type="range" id="cooldown-slider" min="5" max="300" step="5" value="10" 
                                oninput="onCooldownSliderChange(this.value)"
@@ -398,8 +395,8 @@
                         <label class="text-xs font-black uppercase text-slate-700 flex items-center">
                             <span>🔊 Barrierefreiheit (Vorlesen)</span>
                         </label>
-                        <span id="menu-tts-status-label" class="font-mono text-[10px] font-black px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                            Deaktiviert
+                        <span id="menu-tts-status-label" class="font-mono text-[10px] font-black px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                            Aktiviert
                         </span>
                     </div>
 
@@ -409,12 +406,12 @@
 
                     <div class="grid grid-cols-2 gap-2 pt-1">
                         <button type="button" id="tts-btn-off" onclick="setTTS(false)" 
-                                class="py-2 px-3 rounded-xl border text-xs font-black transition flex items-center justify-center space-x-1">
+                                class="py-2 px-3 rounded-xl border text-xs font-black transition flex items-center justify-center space-x-1 bg-slate-50 text-slate-700 border-slate-300">
                             <span>✕</span>
                             <span>Aus</span>
                         </button>
                         <button type="button" id="tts-btn-on" onclick="setTTS(true)" 
-                                class="py-2 px-3 rounded-xl border text-xs font-black transition flex items-center justify-center space-x-1">
+                                class="py-2 px-3 rounded-xl border text-xs font-black transition flex items-center justify-center space-x-1 bg-emerald-600 text-white border-emerald-600">
                             <span>🔊</span>
                             <span>Aktiviert</span>
                         </button>
@@ -500,7 +497,7 @@
                         <span>Pause</span>
                     </button>
 
-                    <!-- Abbrechen-Button (Grau / im C64 Dark-Blue) -->
+                    <!-- Abbrechen-Button -->
                     <button id="floating-cancel-btn" onclick="handleFloatingCancel()" class="w-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold py-2.5 px-4 rounded-xl border border-slate-300 flex items-center justify-center gap-2 text-xs transition-all shadow-sm my-1">
                         <span id="floating-cancel-icon">✕</span>
                         <span id="floating-cancel-text">Abbrechen (Buchung verwerfen)</span>
@@ -680,7 +677,9 @@
         // ==========================================================
         let cooldownSeconds = parseInt(localStorage.getItem('zf_cooldown_seconds')) || 10;
         let currentSkin = localStorage.getItem('zf_app_skin') || 'modern';
-        let isTtsActive = localStorage.getItem('zf_tts_active') === 'true';
+        
+        // 1. Barrierefreiheit standardmäßig aktiv (bleibt auch nach Cache-Reset an!)
+        let isTtsActive = localStorage.getItem('zf_tts_active') !== 'false';
 
         const appBroadcast = ('BroadcastChannel' in window) ? new BroadcastChannel('zf_app_channel') : null;
         if (appBroadcast) {
@@ -850,7 +849,7 @@
                     updateCooldownDisplay(cooldownSeconds);
                 }
                 if (e.key === 'zf_tts_active') {
-                    isTtsActive = e.newValue === 'true';
+                    isTtsActive = e.newValue !== 'false';
                     updateTTSUI(isTtsActive);
                 }
             });
@@ -1104,23 +1103,27 @@
             speakText("Dies ist eine Sprechprobe für die barrierefreie Zeiterfassung. Alle Anzeigen und Abbrechen-Optionen werden klar vorgelesen.", true);
         }
 
+        // 2. Robuste Sprachausgabe mit 80ms Pause gegen Audio-Kollisionen
         function speakText(text, forceTest = false) {
             if (!forceTest && !isTtsActive) return;
             if (!('speechSynthesis' in window)) return;
 
             try {
                 window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'de-DE';
-                utterance.rate = 1.0;
-                utterance.pitch = 1.05;
 
-                const voices = window.speechSynthesis.getVoices();
-                const deVoice = voices.find(v => v.lang.startsWith('de') && (v.name.includes('Natural') || v.name.includes('Siri') || v.name.includes('Google'))) 
-                             || voices.find(v => v.lang.startsWith('de'));
-                if (deVoice) utterance.voice = deVoice;
+                setTimeout(() => {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'de-DE';
+                    utterance.rate = 1.0;
+                    utterance.pitch = 1.05;
 
-                window.speechSynthesis.speak(utterance);
+                    const voices = window.speechSynthesis.getVoices();
+                    const deVoice = voices.find(v => v.lang.startsWith('de') && (v.name.includes('Natural') || v.name.includes('Siri') || v.name.includes('Google'))) 
+                                 || voices.find(v => v.lang.startsWith('de'));
+                    if (deVoice) utterance.voice = deVoice;
+
+                    window.speechSynthesis.speak(utterance);
+                }, 80);
             } catch (e) {
                 console.warn('TTS nicht verfügbar:', e);
             }
@@ -1423,7 +1426,6 @@
             document.getElementById('floating-modal').classList.remove('hidden');
             updateModalProgressBar();
 
-            // Vorlese-Ansage für SCR-05 mit Abbruch-Hinweis
             speakText(`Tätigkeitswechsel. Möchten Sie ${task1Text} buchen und zu ${newTaskMasterEntry.t1 || newTaskMasterEntry.id} wechseln? Drücken Sie Abbrechen zum Stornieren.`);
 
             floatingTimerInterval = setInterval(() => {
@@ -1586,7 +1588,6 @@
             updateModalProgressBar();
             document.getElementById('floating-modal').classList.remove('hidden');
 
-            // Vorlese-Ansage für SCR-01 und SCR-07
             if (currentModalMode === 'switch_f3') {
                 speakText(`Laufende Tätigkeit zwei gestartet: ${fullTitle}. Zum Verwerfen Abbrechen drücken.`);
             } else {
@@ -1634,7 +1635,6 @@
             updateModalProgressBar();
             document.getElementById('floating-modal').classList.remove('hidden');
 
-            // Vorlese-Ansage für SCR-03 mit Abbruch-Option
             const spokenDuration = pendingStopEntry ? formatDurationForSpeech(pendingStopEntry.durationSec) : '';
             speakText(`Tätigkeit beenden: ${fullTitle}. Bisherige Dauer: ${spokenDuration}. Drücken Sie auf Tätigkeit buchen, oder auf Abbrechen zum Verwerfen.`);
 
@@ -1679,7 +1679,7 @@
         }
 
         // ==========================================================
-        // ABBRECHEN-LOGIK (SCR-BTN-CANCEL AUF SCR-01, SCR-03, SCR-05, SCR-07)
+        // 3. ABBRECHEN-LOGIK MIT SCREEN-DIFERENZIERUNG & TIMEOUT
         // ==========================================================
         function handleFloatingCancel() {
             clearAllModalIntervals();
@@ -1727,7 +1727,8 @@
                 speakText("Start abgebrochen. Keine Zeit erfasst.");
             }
 
-            tryCloseBrowserWindow();
+            // Gibt dem Browser 1.8 Sekunden Zeit, den Satz vollständig vorzulesen
+            setTimeout(tryCloseBrowserWindow, 1800);
         }
 
         function updateModalProgressBar() {
