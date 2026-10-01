@@ -38,44 +38,141 @@
         .tag { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; margin: 2px; color: white; }
 
         /* ==========================================================================
-           C64 RETRO-SKIN DEFINITION (Inspiriert von Commodore 64 & Katakis)
+           C64 RETRO-SKIN: KATAKIS GELB-BLAU HIGH-CONTRAST (100% LESBARKEIT)
            ========================================================================== */
         body.skin-c64 {
-            background-color: #1a1040 !important;
-            color: #d8d0ff !important;
+            background-color: #080a26 !important;
+            color: #ffffff !important;
             font-family: 'Courier Prime', monospace, sans-serif !important;
         }
 
         body.skin-c64 .app-container {
-            background-color: #352879 !important;
-            border-left: 4px solid #6c5eb5;
-            border-right: 4px solid #6c5eb5;
-            box-shadow: 0 0 25px rgba(108, 94, 181, 0.45);
+            background-color: #0e133d !important;
+            border-left: 4px solid #facc15 !important;
+            border-right: 4px solid #facc15 !important;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.85) !important;
             color: #ffffff !important;
         }
 
         body.skin-c64 header {
-            background: linear-gradient(180deg, #40318d 0%, #291c66 100%) !important;
-            border-bottom: 3px solid #70a4b2 !important;
+            background: linear-gradient(180deg, #182061 0%, #0a0d2e 100%) !important;
+            border-bottom: 3px solid #facc15 !important;
         }
 
+        /* 1. Karten, Modale & Container mit Arcade-Gelb Rahmen */
         body.skin-c64 .c64-card {
-            background-color: #23185a !important;
-            border: 2px solid #70a4b2 !important;
+            background-color: #141a52 !important;
+            border: 2px solid #facc15 !important;
             color: #ffffff !important;
-            box-shadow: 3px 3px 0px #000000 !important;
+            box-shadow: 4px 4px 0px #000000 !important;
         }
 
         body.skin-c64 .c64-modal {
-            background-color: #2b1e6a !important;
-            border: 3px solid #70a4b2 !important;
+            background-color: #101545 !important;
+            border: 3px solid #facc15 !important;
             color: #ffffff !important;
-            box-shadow: 6px 6px 0px #000000, 0 0 25px rgba(112, 164, 178, 0.5) !important;
+            box-shadow: 6px 6px 0px #000000, 0 0 25px rgba(250, 204, 21, 0.3) !important;
         }
 
-        body.skin-c64 .c64-btn {
-            border: 2px solid #ffffff !important;
+        /* 2. Zwanghafte Übersteuerung aller dunklen Tailwind-Textfarben */
+        body.skin-c64 .text-slate-900,
+        body.skin-c64 .text-slate-800,
+        body.skin-c64 .text-slate-700,
+        body.skin-c64 .text-slate-600 {
+            color: #ffffff !important;
+        }
+
+        body.skin-c64 .text-slate-500,
+        body.skin-c64 .text-slate-400 {
+            color: #93c5fd !important; /* Helles Retro-Cyan für Sekundärtexte */
+        }
+
+        /* 3. Überschriften, Banner & Badges in leuchtendem Arcade-Gelb */
+        body.skin-c64 h1,
+        body.skin-c64 h2,
+        body.skin-c64 h3,
+        body.skin-c64 label,
+        body.skin-c64 #active-task-section .text-green-600 {
+            color: #fde047 !important;
+            text-shadow: 1px 1px 0px #000000;
+        }
+
+        /* 4. Große Ziffern & Timer: Strahlendes Cyber-Cyan (gestochen scharf) */
+        body.skin-c64 #active-time,
+        body.skin-c64 #floating-time-display,
+        body.skin-c64 #timeout-task2-time {
+            color: #67e8f9 !important;
+            text-shadow: 0 0 10px rgba(103, 232, 249, 0.45);
+            border-bottom: 2px solid #28347a !important;
+        }
+
+        /* 5. Dynamische Tätigkeitsbeschreibungen & Boxen */
+        body.skin-c64 #floating-task-title,
+        body.skin-c64 #confirm-task-title,
+        body.skin-c64 #timeout-task2-title {
+            color: #ffffff !important;
+            text-shadow: 1px 1px 0px #000000;
+        }
+
+        body.skin-c64 .bg-emerald-50 {
+            background-color: #182363 !important;
+            border-color: #facc15 !important;
+        }
+
+        /* 6. Code-Badges & Eingabefelder */
+        body.skin-c64 #floating-code-display,
+        body.skin-c64 #active-id,
+        body.skin-c64 .bg-slate-100 {
+            background-color: #0b0e33 !important;
+            border: 1px solid #3b4890 !important;
+            color: #fde047 !important;
+        }
+
+        body.skin-c64 input[type="text"] {
+            background-color: #080b29 !important;
+            border: 2px solid #facc15 !important;
+            color: #ffffff !important;
+        }
+
+        /* 7. Arbeitszeit-Liste Historie */
+        body.skin-c64 #log-list li {
+            background-color: #171e59 !important;
+            border: 1px solid #3b4890 !important;
             box-shadow: 2px 2px 0px #000000 !important;
+        }
+        body.skin-c64 #log-list li .text-slate-900 {
+            color: #ffffff !important;
+        }
+        body.skin-c64 #log-list li .text-slate-700 {
+            color: #fde047 !important;
+        }
+
+        /* 8. Buttons nach Katakis-Vorbild: Arcade-Gelb mit schwarzer Schrift */
+        body.skin-c64 .c64-btn {
+            border: 2px solid #facc15 !important;
+            box-shadow: 2px 2px 0px #000000 !important;
+        }
+
+        /* Haupt-Aktionsbutton (🟢 Tätigkeit buchen / Export) */
+        body.skin-c64 #floating-top-action-btn,
+        body.skin-c64 button.bg-emerald-600,
+        body.skin-c64 button.bg-green-600 {
+            background-color: #facc15 !important;
+            color: #000000 !important;
+            border: 2px solid #ffffff !important;
+            font-weight: 900 !important;
+        }
+        body.skin-c64 #floating-top-action-btn:hover,
+        body.skin-c64 button.bg-emerald-600:hover,
+        body.skin-c64 button.bg-green-600:hover {
+            background-color: #fde047 !important;
+        }
+
+        /* Abbrechen-Button im Katakis-Skin */
+        body.skin-c64 #floating-cancel-btn {
+            background-color: #1c2357 !important;
+            border: 1px solid #64748b !important;
+            color: #ffffff !important;
         }
     </style>
 </head>
