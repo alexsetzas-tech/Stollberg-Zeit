@@ -1407,8 +1407,7 @@
             document.getElementById('floating-modal').classList.remove('hidden');
             updateModalProgressBar();
 
-            speakText(`Tätigkeitswechsel. Möchten Sie ${task1Text} buchen und zu ${newTaskMasterEntry.t1 || newTaskMasterEntry.id} wechseln?`);
-
+            speakText(`Tätigkeitswechsel. Möchten Sie ${task1Text} buchen und zu ${newTaskMasterEntry.t1 || newTaskMasterEntry.id} wechseln? Drücken Sie Abbrechen zum Stornieren.`);
             floatingTimerInterval = setInterval(() => {
                 const remaining = getRemainingLockSeconds();
                 updateModalProgressBar();
@@ -1569,8 +1568,11 @@
             updateModalProgressBar();
             document.getElementById('floating-modal').classList.remove('hidden');
 
-            speakText(`Laufende Tätigkeit gestartet: ${fullTitle}.`);
-
+if (currentModalMode === 'switch_f3') {
+    speakText(`Laufende Tätigkeit zwei gestartet: ${fullTitle}. Zum Verwerfen Abbrechen drücken.`);
+} else {
+    speakText(`Laufende Tätigkeit gestartet: ${fullTitle}. Zum Verwerfen Abbrechen drücken.`);
+}
             floatingTimerInterval = setInterval(() => {
                 const remaining = getRemainingLockSeconds();
                 updateModalProgressBar();
@@ -1613,8 +1615,7 @@
             document.getElementById('floating-modal').classList.remove('hidden');
 
             const spokenDuration = pendingStopEntry ? formatDurationForSpeech(pendingStopEntry.durationSec) : '';
-            speakText(`Tätigkeit beenden: ${fullTitle}. Bisherige Dauer: ${spokenDuration}. Drücken Sie auf Tätigkeit buchen oder warten Sie auf die automatische Buchung.`);
-
+            speakText(`Tätigkeit beenden: ${fullTitle}. Bisherige Dauer: ${spokenDuration}. Drücken Sie auf Tätigkeit buchen, oder auf Abbrechen zum Verwerfen.`);
             floatingTimerInterval = setInterval(() => {
                 const remaining = getRemainingLockSeconds();
                 updateModalProgressBar();
@@ -1661,7 +1662,10 @@
         function handleFloatingCancel() {
             clearAllModalIntervals();
 
-            if (currentModalMode === 'switch_f1') {
+            const modeAtCancel = currentModalMode;
+
+            // 1. SCR-05: WECHSEL ABBRECHEN
+            if (modeAtCancel === 'switch_f1') {
                 pendingSwitchTask2 = null;
                 pendingStopEntry = null;
 
@@ -1684,11 +1688,25 @@
             document.getElementById('active-task-section').classList.add('hidden');
 
             dismissFloatingModal();
-            showMessage("↩️ Buchung verworfen. Keine Zeit erfasst.", "success");
-            speakText("Buchung verworfen. Es wurde keine Zeit erfasst.");
+
+            // 2. SCR-03: STOPP ABBRECHEN
+            if (modeAtCancel === 'stop') {
+                showMessage("↩️ Stopp abgebrochen. Keine Zeit erfasst.", "success");
+                speakText("Stoppen abgebrochen. Buchung verworfen, es wurde keine Zeit erfasst.");
+            } 
+            // 3. SCR-07: TÄTIGKEIT 2 ABBRECHEN (NACH WECHSEL)
+            else if (modeAtCancel === 'switch_f3') {
+                showMessage("↩️ Tätigkeit 2 verworfen.", "success");
+                speakText("Tätigkeit zwei verworfen. Keine Zeit erfasst.");
+            } 
+            // 4. SCR-01: START ABBRECHEN
+            else {
+                showMessage("↩️ Buchung verworfen. Keine Zeit erfasst.", "success");
+                speakText("Start abgebrochen. Keine Zeit erfasst.");
+            }
+
             tryCloseBrowserWindow();
         }
-
         function updateModalProgressBar() {
             const bar = document.getElementById('floating-progress-bar');
             if (!bar) return;
